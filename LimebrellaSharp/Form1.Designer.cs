@@ -214,7 +214,7 @@
             label6.Name = "label6";
             label6.Size = new Size(37, 15);
             label6.TabIndex = 14;
-            label6.Text = "v1.0.0";
+            label6.Text = "v1.0.1";
             // 
             // label7
             // 

@@ -1,6 +1,7 @@
 using LimebrellaSharp.Helpers;
 using LimebrellaSharpCore.Helpers;
 using LimebrellaSharpCore.Models.DSSS.Lime;
+using System.Text.RegularExpressions;
 
 namespace LimebrellaSharp;
 
@@ -8,6 +9,36 @@ public partial class Form1 : Form
 {
     private CancellationTokenSource _cts = new();
     private bool _isBusy;
+
+    private static readonly string PathPattern = @$"\{Path.DirectorySeparatorChar}(\d+)\{Path.DirectorySeparatorChar}2050650\{Path.DirectorySeparatorChar}remote\{Path.DirectorySeparatorChar}win64_save\{Path.DirectorySeparatorChar}?$";
+
+    private void ExtractSteamIdFromPathIfValid()
+    {
+        var match = Regex.Match(TBFilepath.Text, PathPattern);
+        if (!match.Success) return;
+        TBSteamIdLeft.Text = match.Groups[1].Value;
+    }
+
+    private void ValidateSteamId()
+    {
+        TBSteamIdLeft.Text = SteamIdFixer(TBSteamIdLeft.Text);
+        TBSteamIdRight.Text = SteamIdFixer(TBSteamIdRight.Text);
+
+        string SteamIdFixer(string textBoxText) => ulong.TryParse(textBoxText, out var result) ? ((uint)result).ToString() : "0";
+    }
+
+    private void ResetToolStrip()
+    {
+        toolStripProgressBar1.Value = 0;
+        toolStripStatusLabel1.Text = "Ready";
+    }
+
+    private bool DoesInputDirectoryExists()
+    {
+        if (Directory.Exists(TBFilepath.Text)) return true;
+        MessageBox.Show($@"Directory: ""{TBFilepath.Text}"" does not exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        return false;
+    }
 
     public Form1()
     {
@@ -34,22 +65,11 @@ public partial class Form1 : Form
         if (folderBrowserDialog1.ShowDialog() == DialogResult.OK) TBFilepath.Text = folderBrowserDialog1.SelectedPath;
     }
 
-    private void ValidateSteamId()
-    {
-        TBSteamIdLeft.Text = SteamIdFixer(TBSteamIdLeft.Text);
-        TBSteamIdRight.Text = SteamIdFixer(TBSteamIdRight.Text);
-
-        string SteamIdFixer(string textBoxText) => ulong.TryParse(textBoxText, out var result) ? ((uint)result).ToString() : "0";
-    }
-
-    private void ResetToolStrip()
-    {
-        toolStripProgressBar1.Value = 0;
-        toolStripStatusLabel1.Text = "Ready";
-    }
-
     private void TBFilepath_TextChanged(object sender, EventArgs e)
-        => ResetToolStrip();
+    {
+        ResetToolStrip();
+        ExtractSteamIdFromPathIfValid();
+    }
 
     private void TBFilepath_DragDrop(object sender, DragEventArgs e)
     {
@@ -59,13 +79,6 @@ public partial class Form1 : Form
         if ((File.GetAttributes(filePath) & FileAttributes.Directory) != FileAttributes.Directory)
             filePath = Path.GetDirectoryName(filePath);
         TBFilepath.Text = filePath;
-    }
-
-    private bool DoesInputDirectoryExists()
-    {
-        if (Directory.Exists(TBFilepath.Text)) return true;
-        MessageBox.Show($@"Directory: ""{TBFilepath.Text}"" does not exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        return false;
     }
 
     private void TBFilepath_DragOver(object sender, DragEventArgs e)
