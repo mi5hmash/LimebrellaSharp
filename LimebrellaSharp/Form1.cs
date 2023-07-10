@@ -217,11 +217,6 @@ public partial class Form1 : Form
                 // decrypt
                 if (!limeDeencryptor.Limetree(dsssFile, steamIdLeft)) return;
 
-                foreach (var segment in dsssFile.Segments)
-                {
-                    for (var j = 0; j < segment.HashedKeyBanks.Length; j++) segment.HashedKeyBanks[j].SetDefaultKey();
-                }
-
                 // encrypt
                 limeDeencryptor.Limetree(dsssFile, steamIdRight, true);
 
@@ -293,7 +288,7 @@ public partial class Form1 : Form
                     dsssFile.Segments[i] = new DsssLimeDataSegment();
                     // load data
                     fs.Read(dsssFile.Segments[i].SegmentData, 0, dsssFile.Segments[i].SegmentData.Length);
-                    // randomize keys
+                    // set default HashedKeyBanks
                     for (var j = 0; j < dsssFile.Segments[i].HashedKeyBanks.Length; j++)
                         dsssFile.Segments[i].HashedKeyBanks[j] = new DsssLimeHashedKeyBank();
                 }

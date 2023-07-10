@@ -45,9 +45,13 @@ public class DsssHeader
     }
 
     /// <summary>
-    /// Returns false if this <see cref="FileFormat"/> does not make sense.
+    /// Returns false if its <see cref="FileFormat"/> does not make sense or <see cref="EncryptionType"/> is not supported.
     /// </summary>
     /// <returns></returns>
-    public BoolResult CheckIntegrity() => 
-        FileFormat == 0x5353_5344 ? new BoolResult(true) : new BoolResult(false, "Invalid file header!");
+    public BoolResult CheckIntegrity()
+    {
+        if (FileFormat != 0x5353_5344) return new BoolResult(false, "Invalid file header!");
+        if (EncryptionType != 0x10) return new BoolResult(false, "Invalid file encryption type!");
+        return new BoolResult(true);
+    }
 }

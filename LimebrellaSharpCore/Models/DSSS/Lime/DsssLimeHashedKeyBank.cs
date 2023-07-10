@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using LimebrellaSharpCore.Helpers;
 
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
@@ -40,9 +39,7 @@ public struct DsssLimeHashedKeyBank
     /// Returns a default header value.
     /// </summary>
     /// <returns></returns>
-    public void SetDefaultHeader() =>
-        "QkIzOUM4MTcwMkQ1NDk1QjY3MTg0NEQyRjVFRTJCNzdCODExRUI2RTA3NkIyMzZFNDFFRTdDRTM0MkY1MTYxMg=="
-            .Base64DecodeUtf8().ToUlongArray().CopyTo((Span<ulong>)Header);
+    public void SetDefaultHeader() => Header = new ulong[] { 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0, 0x0 };
 
     /// <summary>
     /// Returns a default key value.

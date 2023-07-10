@@ -1,7 +1,7 @@
-﻿using System.Runtime.InteropServices;
+﻿using LimebrellaSharpCore.Models.DSSS.Lime;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using LimebrellaSharpCore.Models.DSSS.Lime;
 
 namespace LimebrellaSharpCore.Helpers;
 
@@ -10,12 +10,14 @@ public class LimeDeencryptor
     #region CONSTANTS
 
     private const ulong BitMaskPattern = 0x8000000000000000;
+    private const ulong KeyType = 20;
     private const int EncSteps = 10;
     private const int AesBlockLength = EncSteps + 1;
     private const int CLengthMax = 34;
     private const int ChecksumContainerLength = 25;
 
     private readonly ulong[] _privateKey1;
+    private readonly ulong[] _privateKey2;
 
     private readonly byte[] _checksumTable1;
     private readonly byte[] _checksumTable2;
@@ -31,6 +33,9 @@ public class LimeDeencryptor
     {
         _privateKey1 = "RjMzQjZGQjk3MkEwQjcyNTE1RTQ1QzM5MTgyOUUxODJBRDhBOUJEQzBBNjREMzQ0NEQ3OUM4MTBBQjg2MzcxNw=="
             .Base64DecodeUtf8().ToUlongArray();
+        _privateKey2 = "RTY2RjU0NEFGQ0NFNjhDNUVGMDdCOUEwN0IyNzc1ODUzNDRBMURCNjEzNzZFODMxRjczQjlGQkQ1RjQ0RjcxNQ=="
+            .Base64DecodeUtf8().ToUlongArray();
+
         _checksumTable1 = "MDEwMzA2MEEwRjE1MUMyNDJEMzcwMjBFMUIyOTM4MDgxOTJCM0UxMjI3M0QxNDJD"
             .Base64DecodeUtf8().ToBytes();
         _checksumTable2 = "MEEwNzBCMTExMjAzMDUxMDA4MTUxODA0MEYxNzEzMEQwQzAyMTQwRTE2MDkwNjAx"
@@ -40,8 +45,25 @@ public class LimeDeencryptor
         _keygenControl = "MDEwMjA0MDgxMDIwNDA4MDFCMzY2Q0Q4QUI0RDlB"
             .Base64DecodeUtf8().ToBytes();
     }
-    
+
     #region HELPER FUNCS
+
+    /// <summary>
+    /// Randomizes the range of bytes in a given span.
+    /// </summary>
+    /// <param name="span"></param>
+    /// <param name="startPos"></param>
+    /// <param name="length"></param>
+    public static void RandomizeSpan(ref Span<byte> span, int length = 0, int startPos = 0)
+    {
+        startPos = startPos < 0 ? 0 : startPos;
+        startPos = startPos > span.Length ? span.Length : startPos;
+        length = length < 0 ? 0 : length;
+        length = startPos + length > span.Length ? span.Length - startPos : length;
+
+        Random random = new();
+        for (var i = 0; i < length; i++) span[startPos + i] = (byte)random.Next(byte.MaxValue + 1);
+    }
 
     /// <summary>
     /// Multiplies two ulong values.
@@ -594,20 +616,53 @@ public class LimeDeencryptor
         // load steamID into container
         Span<ulong> cSteamId = stackalloc ulong[CLengthMax];
         cSteamId[0] = NotSteamId(steamId);
-
+        
         Span<ulong> cHashPublicKeysResult = stackalloc ulong[CLengthMax];
         Span<Vector128<byte>> aesRoundKeys = stackalloc Vector128<byte>[2 * AesBlockLength + 1];
         Span<ulong> checksumContainer = stackalloc ulong[ChecksumContainerLength];
         Span<DsssLimeDataSegment> segments = limeFile.Segments;
+
+        // calculate header and seed
+        Span<ulong> cKeyType = stackalloc ulong[CLengthMax];
+        Span<ulong> cHeader = stackalloc ulong[CLengthMax];
+        Span<ulong> cLimeSeed = stackalloc ulong[CLengthMax];
+        Span<ulong> cHashedKeyPart = stackalloc ulong[CLengthMax];
+        Span<ulong> cRandomizer = stackalloc ulong[CLengthMax];
+        var cRandomizerAsBytes = MemoryMarshal.Cast<ulong, byte>(cRandomizer[..(cRandomizer.Length / sizeof(byte) * sizeof(byte))]);
+        if (encrypt)
+        {
+            // load key type into container
+            cKeyType[0] = KeyType;
+
+            // calculate header
+            _privateKey2.CopyTo(cHeader);
+            Limegator(cHeader, cKeyType, cKey1);
+
+            // calculate seed
+            _privateKey2.CopyTo(cLimeSeed);
+            Limegator(cLimeSeed, cSteamId, cKey1);
+            Limegator(cLimeSeed, cKeyType, cKey1);
+        }
 
         for (var i = 0; i < segments.Length; i++)
         {
             Span<byte> dataAsBytes = segments[i].SegmentData;
             var dataAsUlongs = MemoryMarshal.Cast<byte, ulong>(dataAsBytes[..(dataAsBytes.Length / sizeof(ulong) * sizeof(ulong))]);
             
-            // calculate and set a checksum of current segment if function performs encryption
             if (encrypt)
             {
+                for (var j = 0; j < segments[i].HashedKeyBanks.Length; j++)
+                {
+                    // calculate hashed key
+                    cLimeSeed.CopyTo(cHashedKeyPart);
+                    RandomizeSpan(ref cRandomizerAsBytes,sizeof(ulong));
+                    EncryptionFirst(ref cHashedKeyPart, cRandomizer);
+                    // update header and hashed key
+                    segments[i].HashedKeyBanks[j].Header = cHeader[..segments[i].HashedKeyBanks[j].Header.Length].ToArray();
+                    segments[i].HashedKeyBanks[j].HashedKey = cHashedKeyPart[..segments[i].HashedKeyBanks[j].HashedKey.Length].ToArray();
+                }
+
+                // calculate and set a checksum of current segment
                 checksumContainer.Clear();
                 LimeChecksum(ref checksumContainer, dataAsUlongs);
                 segments[i].SetSegmentChecksum(checksumContainer);
