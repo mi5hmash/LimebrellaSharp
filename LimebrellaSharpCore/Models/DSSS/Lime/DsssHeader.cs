@@ -17,7 +17,7 @@ public class DsssHeader
 
     /// <summary>
     /// Save File encryption type.
-    /// Possible values: ?:None; ?:AutoStrong; ?:XOR; ?:BlowFish; ?:Citrus; 16:Lime; ?:RdsModule
+    /// Possible values: 2:None; 3:AutoStrong; ?:XOR; ?:BlowFish; 4:Citrus; 16:Lime; ?:RdsModule
     /// </summary>
     public uint EncryptionType { get; set; } = 0x10;
 
