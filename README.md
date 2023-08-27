@@ -49,5 +49,5 @@ All the problems I've encountered during my tests have been fixed on the go. If 
 
 **IF YOU DO NOT SEE SAVEDATA FILES THAT YOU HAVE RESIGNED THEN PLEASE, READ <a href="https://github.com/mi5hmash/LimebrellaSharp/tree/main/.resources/Save%20Files" target="_blank">THIS DOCUMENT</a>.**
 
-# :star: Sources:
+# :star: Sources
 * https://github.com/tremwil/DS3SaveUnpacker
