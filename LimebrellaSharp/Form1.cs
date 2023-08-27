@@ -47,8 +47,12 @@ public partial class Form1 : Form
 
     private void Form1_Load(object sender, EventArgs e)
     {
-        Directory.CreateDirectory(Path.Combine(AppInfo.RootPath, AppInfo.OutputFolder));
+        // create directories
+        Directory.CreateDirectory(AppInfo.OutputPath);
+
+        // set controls
         TBFilepath.Text = AppInfo.RootPath;
+        versionLabel.Text = $@"v{AppInfo.ToolVersion}";
     }
 
     private void ButtonChangePlaces_Click(object sender, EventArgs e)
@@ -85,7 +89,7 @@ public partial class Form1 : Form
         => e.Effect = DragDropEffects.Copy;
 
     private void ButtonOpenOutputDir_Click(object sender, EventArgs e)
-        => IoHelpers.OpenDirectory(Path.Combine(AppInfo.RootPath, AppInfo.OutputFolder));
+        => IoHelpers.OpenDirectory(AppInfo.OutputPath);
 
     private void ButtonAbort_Click(object sender, EventArgs e) => AbortOperation();
     private void AbortOperation()
@@ -146,7 +150,7 @@ public partial class Form1 : Form
 
                 if (!limeDeencryptor.Limetree(dsssFile, steamId)) return;
 
-                FileStream fs = new(Path.Combine(AppInfo.RootPath, AppInfo.OutputFolder, Path.GetFileName(files[ctr])), FileMode.Create);
+                FileStream fs = new(Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr])), FileMode.Create);
                 foreach (var segment in dsssFile.Segments) fs.Write(segment.SegmentData);
                 fs.SetLength(dsssFile.Footer.DecryptedDataLength);
                 // close & dispose filestream
@@ -221,7 +225,7 @@ public partial class Form1 : Form
                 limeDeencryptor.Limetree(dsssFile, steamIdRight, true);
 
                 // save file
-                dsssFile.SaveFile(Path.Combine(AppInfo.RootPath, AppInfo.OutputFolder, Path.GetFileName(files[ctr])));
+                dsssFile.SaveFile(Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr])));
 
                 resignedFiles++;
             ORDER_66:
@@ -300,7 +304,7 @@ public partial class Form1 : Form
                 dsssFile.Footer.DecryptedDataLength = fs.Length;
 
                 // save file
-                dsssFile.SaveFile(Path.Combine(AppInfo.RootPath, AppInfo.OutputFolder, Path.GetFileName(files[ctr])));
+                dsssFile.SaveFile(Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr])));
 
                 packedFiles++;
                 Interlocked.Increment(ref progress);

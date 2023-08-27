@@ -35,7 +35,7 @@
             ButtonSelectDir = new Button();
             ButtonUnpackAll = new Button();
             ButtonPackAll = new Button();
-            pictureBox1 = new PictureBox();
+            pb_AppIcon = new PictureBox();
             LabelFilepath = new Label();
             LabelSteamIdLeft1 = new Label();
             LabelSteamIdRight1 = new Label();
@@ -46,7 +46,7 @@
             statusStrip1 = new StatusStrip();
             toolStripProgressBar1 = new ToolStripProgressBar();
             toolStripStatusLabel1 = new ToolStripStatusLabel();
-            label6 = new Label();
+            versionLabel = new Label();
             label7 = new Label();
             toolTip1 = new ToolTip(components);
             ButtonChangePlaces = new Button();
@@ -54,7 +54,7 @@
             ButtonOpenOutputDir = new Button();
             folderBrowserDialog1 = new FolderBrowserDialog();
             ButtonAbort = new Button();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pb_AppIcon).BeginInit();
             statusStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -110,15 +110,15 @@
             ButtonPackAll.UseVisualStyleBackColor = true;
             ButtonPackAll.Click += ButtonPackAll_Click;
             // 
-            // pictureBox1
+            // pb_AppIcon
             // 
-            pictureBox1.Image = Properties.Resources.Limebrella_Sharp_Icon_x512;
-            pictureBox1.Location = new Point(386, 12);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(112, 117);
-            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
-            pictureBox1.TabIndex = 5;
-            pictureBox1.TabStop = false;
+            pb_AppIcon.Image = Properties.Resources.Limebrella_Sharp_Icon_x512;
+            pb_AppIcon.Location = new Point(386, 12);
+            pb_AppIcon.Name = "pb_AppIcon";
+            pb_AppIcon.Size = new Size(112, 117);
+            pb_AppIcon.SizeMode = PictureBoxSizeMode.Zoom;
+            pb_AppIcon.TabIndex = 5;
+            pb_AppIcon.TabStop = false;
             // 
             // LabelFilepath
             // 
@@ -207,14 +207,14 @@
             toolStripStatusLabel1.Size = new Size(39, 17);
             toolStripStatusLabel1.Text = "Ready";
             // 
-            // label6
+            // versionLabel
             // 
-            label6.AutoSize = true;
-            label6.Location = new Point(461, 130);
-            label6.Name = "label6";
-            label6.Size = new Size(37, 15);
-            label6.TabIndex = 14;
-            label6.Text = "v1.0.2";
+            versionLabel.AutoSize = true;
+            versionLabel.Location = new Point(452, 130);
+            versionLabel.Name = "versionLabel";
+            versionLabel.Size = new Size(46, 15);
+            versionLabel.TabIndex = 14;
+            versionLabel.Text = "v1.0.2.0";
             // 
             // label7
             // 
@@ -243,7 +243,7 @@
             ButtonBruteforceSteamID.Location = new Point(144, 61);
             ButtonBruteforceSteamID.Name = "ButtonBruteforceSteamID";
             ButtonBruteforceSteamID.Size = new Size(22, 23);
-            ButtonBruteforceSteamID.TabIndex = 10;
+            ButtonBruteforceSteamID.TabIndex = 999;
             ButtonBruteforceSteamID.Text = "🔍";
             toolTip1.SetToolTip(ButtonBruteforceSteamID, "Bruteforce SteamID");
             ButtonBruteforceSteamID.UseVisualStyleBackColor = true;
@@ -285,7 +285,7 @@
             Controls.Add(ButtonAbort);
             Controls.Add(ButtonChangePlaces);
             Controls.Add(label7);
-            Controls.Add(label6);
+            Controls.Add(versionLabel);
             Controls.Add(statusStrip1);
             Controls.Add(ButtonResignAll);
             Controls.Add(LabelSteamIdRight2);
@@ -294,7 +294,7 @@
             Controls.Add(TBSteamIdRight);
             Controls.Add(LabelSteamIdLeft1);
             Controls.Add(LabelFilepath);
-            Controls.Add(pictureBox1);
+            Controls.Add(pb_AppIcon);
             Controls.Add(ButtonPackAll);
             Controls.Add(ButtonUnpackAll);
             Controls.Add(ButtonSelectDir);
@@ -306,7 +306,7 @@
             Name = "Form1";
             Text = "Limebrella Sharp";
             Load += Form1_Load;
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pb_AppIcon).EndInit();
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
             ResumeLayout(false);
@@ -320,7 +320,7 @@
         private Button ButtonSelectDir;
         private Button ButtonUnpackAll;
         private Button ButtonPackAll;
-        private PictureBox pictureBox1;
+        private PictureBox pb_AppIcon;
         private Label LabelFilepath;
         private Label LabelSteamIdLeft1;
         private Label LabelSteamIdRight1;
@@ -331,7 +331,7 @@
         private StatusStrip statusStrip1;
         private ToolStripProgressBar toolStripProgressBar1;
         private ToolStripStatusLabel toolStripStatusLabel1;
-        private Label label6;
+        private Label versionLabel;
         private Label label7;
         private ToolTip toolTip1;
         private Button ButtonChangePlaces;

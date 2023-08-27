@@ -9,6 +9,8 @@ public static class AppInfo
 
     public static string Name => "Limebrella Sharp";
 
+    public const string ToolVersion = "1.0.2.0";
+
     public static string RootPath => AppDomain.CurrentDomain.BaseDirectory;
 
     #endregion
@@ -17,6 +19,8 @@ public static class AppInfo
     #region OTHER INFO
 
     public static string OutputFolder => "_OUTPUT";
-    
+
+    public static string OutputPath => Path.Combine(RootPath, OutputFolder);
+
     #endregion
 }
