@@ -23,8 +23,9 @@ public partial class Form1 : Form
     {
         TBSteamIdLeft.Text = SteamIdFixer(TBSteamIdLeft.Text);
         TBSteamIdRight.Text = SteamIdFixer(TBSteamIdRight.Text);
+        return;
 
-        string SteamIdFixer(string textBoxText) => ulong.TryParse(textBoxText, out var result) ? ((uint)result).ToString() : "0";
+        static string SteamIdFixer(string textBoxText) => ulong.TryParse(textBoxText, out var result) ? ((uint)result).ToString() : "0";
     }
 
     private void ResetToolStrip()
@@ -52,7 +53,8 @@ public partial class Form1 : Form
 
         // set controls
         TBFilepath.Text = AppInfo.RootPath;
-        versionLabel.Text = $@"v{AppInfo.ToolVersion}";
+        versionLabel.Text = $@"v{AppInfo.Version}";
+        authorLabel.Text = $@"{AppInfo.Author} 2023";
     }
 
     private void ButtonChangePlaces_Click(object sender, EventArgs e)

@@ -489,8 +489,9 @@ public class LimeDeencryptor
         }
 
         localContainerA.CopyTo(containerA);
+        return;
 
-        bool LoopBreaker(ReadOnlySpan<ulong> containerLeft, ReadOnlySpan<ulong> containerRight)
+        static bool LoopBreaker(ReadOnlySpan<ulong> containerLeft, ReadOnlySpan<ulong> containerRight)
         {
             var cLength = QueueLength(containerLeft);
             if (cLength == 0) return true;

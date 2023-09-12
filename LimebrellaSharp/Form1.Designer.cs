@@ -47,7 +47,7 @@
             toolStripProgressBar1 = new ToolStripProgressBar();
             toolStripStatusLabel1 = new ToolStripStatusLabel();
             versionLabel = new Label();
-            label7 = new Label();
+            authorLabel = new Label();
             toolTip1 = new ToolTip(components);
             ButtonChangePlaces = new Button();
             ButtonBruteforceSteamID = new Button();
@@ -216,15 +216,15 @@
             versionLabel.TabIndex = 14;
             versionLabel.Text = "v1.0.2.0";
             // 
-            // label7
+            // authorLabel
             // 
-            label7.AutoSize = true;
-            label7.Font = new Font("Segoe UI", 7F, FontStyle.Regular, GraphicsUnit.Point);
-            label7.Location = new Point(423, 145);
-            label7.Name = "label7";
-            label7.Size = new Size(75, 12);
-            label7.TabIndex = 15;
-            label7.Text = "Mi5hmasH 2023";
+            authorLabel.AutoSize = true;
+            authorLabel.Font = new Font("Segoe UI", 7F, FontStyle.Regular, GraphicsUnit.Point);
+            authorLabel.Location = new Point(423, 145);
+            authorLabel.Name = "authorLabel";
+            authorLabel.Size = new Size(75, 12);
+            authorLabel.TabIndex = 15;
+            authorLabel.Text = "Mi5hmasH 2023";
             // 
             // ButtonChangePlaces
             // 
@@ -284,7 +284,7 @@
             Controls.Add(ButtonBruteforceSteamID);
             Controls.Add(ButtonAbort);
             Controls.Add(ButtonChangePlaces);
-            Controls.Add(label7);
+            Controls.Add(authorLabel);
             Controls.Add(versionLabel);
             Controls.Add(statusStrip1);
             Controls.Add(ButtonResignAll);
@@ -332,7 +332,7 @@
         private ToolStripProgressBar toolStripProgressBar1;
         private ToolStripStatusLabel toolStripStatusLabel1;
         private Label versionLabel;
-        private Label label7;
+        private Label authorLabel;
         private ToolTip toolTip1;
         private Button ButtonChangePlaces;
         private FolderBrowserDialog folderBrowserDialog1;

@@ -95,4 +95,15 @@ public static class IoHelpers
         Directory.CreateDirectory(path);
         Process.Start("explorer.exe", path);
     }
+
+    /// <summary>
+    /// Removes all digits from the end of a filename.
+    /// </summary>
+    /// <param name="str"></param>
+    /// <returns></returns>
+    public static string RemoveSuffixNumbers(this string str)
+    {
+        while (int.TryParse(str[^1..], out _)) str = str[..^1];
+        return str;
+    }
 }
