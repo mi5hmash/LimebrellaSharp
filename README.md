@@ -6,6 +6,13 @@
 # 🍋☂️ LimebrellaSharp - What is it :interrobang:
 This app can **unpack and pack the "Lime" encrypted archives**. It can also **resign files** with your own SteamID to **use any SaveData on your profile**.
 
+## Supported titles*
+| Game Title                | App ID  | Tested Version | Platform |
+|---------------------------|---------|----------------|----------|
+| Resident Evil 4 (Remake)  | 2050650 | 12103332       | PC       |
+
+**the latest versions that I have tested and are supported*
+
 # 🤯 Why was it created :interrobang:
 I wanted to share my SaveData with a friend and find out why the game is taking so long to load my SaveData.
 
