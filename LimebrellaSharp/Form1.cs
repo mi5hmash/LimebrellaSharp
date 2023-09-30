@@ -31,14 +31,40 @@ public partial class Form1 : Form
     private void ResetToolStrip()
     {
         toolStripProgressBar1.Value = 0;
-        toolStripStatusLabel1.Text = "Ready";
+        toolStripStatusLabel1.Text = @"Ready";
     }
 
     private bool DoesInputDirectoryExists()
     {
         if (Directory.Exists(TBFilepath.Text)) return true;
-        MessageBox.Show($@"Directory: ""{TBFilepath.Text}"" does not exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        MessageBox.Show($"""Directory: "{TBFilepath.Text}" does not exists.""", @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         return false;
+    }
+
+    private bool WriteBytesToFile(string filePath, Span<byte> fileData)
+    {
+        do
+        {
+            if (TryWriteAllBytes(filePath, fileData)) return true;
+            // Ask the user if they want to try again
+            var dialogResult = MessageBox.Show($"""Failed to save the file: "{filePath}".{Environment.NewLine}It may be currently in use by another program.{Environment.NewLine}Would you like to try again?""", @"Failed to save the file", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
+            if (dialogResult == DialogResult.No) return false;
+        } while (true);
+
+        bool TryWriteAllBytes(string fPath, Span<byte> bytes)
+        {
+            try
+            {
+                File.WriteAllBytes(fPath, bytes.ToArray());
+            }
+            catch { return false; }
+            return true;
+        }
+    }
+
+    private static void CreateDirectories()
+    {
+        Directory.CreateDirectory(AppInfo.OutputPath);
     }
 
     public Form1()
@@ -49,7 +75,7 @@ public partial class Form1 : Form
     private void Form1_Load(object sender, EventArgs e)
     {
         // create directories
-        Directory.CreateDirectory(AppInfo.OutputPath);
+        CreateDirectories();
 
         // set controls
         TBFilepath.Text = AppInfo.RootPath;
@@ -106,6 +132,7 @@ public partial class Form1 : Form
     {
         if (_isBusy) return;
         _isBusy = true;
+        CreateDirectories();
         ValidateSteamId();
         var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
         var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
@@ -118,7 +145,7 @@ public partial class Form1 : Form
         }
         catch (OperationCanceledException)
         {
-            toolStripStatusLabel1.Text = "The operation was aborted by the user.";
+            toolStripStatusLabel1.Text = @"The operation was aborted by the user.";
         }
         AbortOperation();
     }
@@ -147,20 +174,17 @@ public partial class Form1 : Form
             Parallel.For((long)0, files.Length, po, (ctr) =>
             {
                 var dsssFile = new DsssLimeFile();
-                var result = dsssFile.LoadFile(files[ctr]);
-                if (!result.Result) goto ORDER_66;
+                var resultRead = dsssFile.SetFileData(files[ctr]);
+                if (!resultRead.Result) goto ORDER_66;
 
                 if (!limeDeencryptor.Limetree(dsssFile, steamId)) return;
 
-                FileStream fs = new(Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr])), FileMode.Create);
-                foreach (var segment in dsssFile.Segments) fs.Write(segment.SegmentData);
-                fs.SetLength(dsssFile.Footer.DecryptedDataLength);
-                // close & dispose filestream
-                fs.Close();
-                fs.Dispose();
+                var filePath = Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr]));
+                var fileSegments = dsssFile.GetFileSegments();
+                var writeResult = WriteBytesToFile(filePath, fileSegments);
 
-                unpackedFiles++;
-            ORDER_66:
+                if (writeResult) unpackedFiles++; 
+                ORDER_66:
                 Interlocked.Increment(ref progress);
                 pText.Report($@"[{progress}/{files.Length}] Processing files...");
                 pPercentage.Report((int)((double)progress / files.Length * 100));
@@ -170,11 +194,12 @@ public partial class Form1 : Form
             pPercentage.Report(100);
         });
     }
-
+    
     private async void ButtonResignAll_Click(object sender, EventArgs e)
     {
         if (_isBusy) return;
         _isBusy = true;
+        CreateDirectories();
         ValidateSteamId();
         var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
         var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
@@ -187,7 +212,7 @@ public partial class Form1 : Form
         }
         catch (OperationCanceledException)
         {
-            toolStripStatusLabel1.Text = "The operation was aborted by the user.";
+            toolStripStatusLabel1.Text = @"The operation was aborted by the user.";
         }
         AbortOperation();
     }
@@ -217,8 +242,8 @@ public partial class Form1 : Form
             Parallel.For((long)0, files.Length, po, ctr =>
             {
                 var dsssFile = new DsssLimeFile();
-                var result = dsssFile.LoadFile(files[ctr]);
-                if (!result.Result) goto ORDER_66;
+                var resultRead = dsssFile.SetFileData(files[ctr]);
+                if (!resultRead.Result) goto ORDER_66;
 
                 // decrypt
                 if (!limeDeencryptor.Limetree(dsssFile, steamIdLeft)) return;
@@ -227,10 +252,12 @@ public partial class Form1 : Form
                 limeDeencryptor.Limetree(dsssFile, steamIdRight, true);
 
                 // save file
-                dsssFile.SaveFile(Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr])));
+                var filePath = Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr]));
+                var fileSegments = dsssFile.GetFileData();
+                var writeResult = WriteBytesToFile(filePath, fileSegments);
 
-                resignedFiles++;
-            ORDER_66:
+                if (writeResult) resignedFiles++; 
+                ORDER_66:
                 Interlocked.Increment(ref progress);
                 pText.Report($@"[{progress}/{files.Length}] Processing files...");
                 pPercentage.Report((int)((double)progress / files.Length * 100));
@@ -244,6 +271,7 @@ public partial class Form1 : Form
     {
         if (_isBusy) return;
         _isBusy = true;
+        CreateDirectories();
         ValidateSteamId();
         var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
         var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
@@ -256,7 +284,7 @@ public partial class Form1 : Form
         }
         catch (OperationCanceledException)
         {
-            toolStripStatusLabel1.Text = "The operation was aborted by the user.";
+            toolStripStatusLabel1.Text = @"The operation was aborted by the user.";
         }
         AbortOperation();
     }
@@ -285,30 +313,19 @@ public partial class Form1 : Form
             Parallel.For((long)0, files.Length, po, ctr =>
             {
                 var dsssFile = new DsssLimeFile();
-                using FileStream fs = new(files[ctr], FileMode.Open);
-                var numberOfSegments = (int)Math.Ceiling((double)fs.Length / 0x1000);
-                dsssFile.Segments = new DsssLimeDataSegment[numberOfSegments];
-
-                for (var i = 0; i < numberOfSegments; i++)
-                {
-                    dsssFile.Segments[i] = new DsssLimeDataSegment();
-                    // load data
-                    fs.Read(dsssFile.Segments[i].SegmentData, 0, dsssFile.Segments[i].SegmentData.Length);
-                    // set default HashedKeyBanks
-                    for (var j = 0; j < dsssFile.Segments[i].HashedKeyBanks.Length; j++)
-                        dsssFile.Segments[i].HashedKeyBanks[j] = new DsssLimeHashedKeyBank();
-                }
-
+                var resultRead = dsssFile.SetFileSegments(files[ctr]);
+                if (!resultRead.Result) goto ORDER_66;
+                
                 // encrypt
                 limeDeencryptor.Limetree(dsssFile, steamIdRight, true);
-
-                // save length of decrypted data
-                dsssFile.Footer.DecryptedDataLength = fs.Length;
-
+                
                 // save file
-                dsssFile.SaveFile(Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr])));
+                var filePath = Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr]));
+                var fileSegments = dsssFile.GetFileData();
+                var writeResult = WriteBytesToFile(filePath, fileSegments);
 
-                packedFiles++;
+                if (writeResult) packedFiles++; 
+                ORDER_66:
                 Interlocked.Increment(ref progress);
                 pText.Report($@"[{progress}/{files.Length}] Processing files...");
                 pPercentage.Report((int)((double)progress / files.Length * 100));
@@ -323,6 +340,7 @@ public partial class Form1 : Form
     {
         if (_isBusy) return;
         _isBusy = true;
+        CreateDirectories();
         ValidateSteamId();
         var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
         var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
@@ -334,7 +352,7 @@ public partial class Form1 : Form
         }
         catch (OperationCanceledException)
         {
-            toolStripStatusLabel1.Text = "The operation was aborted by the user.";
+            toolStripStatusLabel1.Text = @"The operation was aborted by the user.";
         }
         AbortOperation();
     }
@@ -352,13 +370,13 @@ public partial class Form1 : Form
             var test = false;
             foreach (var file in files)
             {
-                test = dsssFile.LoadFile(file).Result;
+                test = dsssFile.SetFileData(file).Result;
                 if (!test) continue;
                 break;
             }
             if (!test)
             {
-                MessageBox.Show($@"There is no compatible file in the ""{TBFilepath.Text}"" directory.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"""There is no compatible file in the "{TBFilepath.Text}" directory.""", @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 

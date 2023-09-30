@@ -70,7 +70,7 @@
             TBFilepath.AllowDrop = true;
             TBFilepath.Location = new Point(12, 31);
             TBFilepath.Name = "TBFilepath";
-            TBFilepath.Size = new Size(315, 23);
+            TBFilepath.Size = new Size(325, 23);
             TBFilepath.TabIndex = 1;
             TBFilepath.TextChanged += TBFilepath_TextChanged;
             TBFilepath.DragDrop += TBFilepath_DragDrop;
@@ -79,9 +79,9 @@
             // ButtonSelectDir
             // 
             ButtonSelectDir.AllowDrop = true;
-            ButtonSelectDir.Location = new Point(333, 31);
+            ButtonSelectDir.Location = new Point(343, 31);
             ButtonSelectDir.Name = "ButtonSelectDir";
-            ButtonSelectDir.Size = new Size(37, 23);
+            ButtonSelectDir.Size = new Size(30, 23);
             ButtonSelectDir.TabIndex = 2;
             ButtonSelectDir.Text = "📁";
             toolTip1.SetToolTip(ButtonSelectDir, "Open the Select Directory Window");
@@ -92,21 +92,25 @@
             // 
             // ButtonUnpackAll
             // 
+            ButtonUnpackAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            ButtonUnpackAll.ForeColor = SystemColors.ControlText;
             ButtonUnpackAll.Location = new Point(12, 126);
             ButtonUnpackAll.Name = "ButtonUnpackAll";
-            ButtonUnpackAll.Size = new Size(75, 23);
+            ButtonUnpackAll.Size = new Size(84, 23);
             ButtonUnpackAll.TabIndex = 6;
-            ButtonUnpackAll.Text = "Unpack All";
+            ButtonUnpackAll.Text = "UNPACK ALL";
             ButtonUnpackAll.UseVisualStyleBackColor = true;
             ButtonUnpackAll.Click += ButtonUnpackAll_Click;
             // 
             // ButtonPackAll
             // 
-            ButtonPackAll.Location = new Point(174, 126);
+            ButtonPackAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            ButtonPackAll.ForeColor = SystemColors.ControlText;
+            ButtonPackAll.Location = new Point(102, 126);
             ButtonPackAll.Name = "ButtonPackAll";
-            ButtonPackAll.Size = new Size(75, 23);
-            ButtonPackAll.TabIndex = 8;
-            ButtonPackAll.Text = "Pack All";
+            ButtonPackAll.Size = new Size(84, 23);
+            ButtonPackAll.TabIndex = 7;
+            ButtonPackAll.Text = "PACK ALL";
             ButtonPackAll.UseVisualStyleBackColor = true;
             ButtonPackAll.Click += ButtonPackAll_Click;
             // 
@@ -151,7 +155,7 @@
             // 
             TBSteamIdRight.Location = new Point(216, 87);
             TBSteamIdRight.Name = "TBSteamIdRight";
-            TBSteamIdRight.Size = new Size(154, 23);
+            TBSteamIdRight.Size = new Size(157, 23);
             TBSteamIdRight.TabIndex = 5;
             // 
             // LabelSteamIdLeft2
@@ -176,11 +180,12 @@
             // 
             // ButtonResignAll
             // 
-            ButtonResignAll.Location = new Point(93, 126);
+            ButtonResignAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            ButtonResignAll.Location = new Point(192, 126);
             ButtonResignAll.Name = "ButtonResignAll";
-            ButtonResignAll.Size = new Size(75, 23);
-            ButtonResignAll.TabIndex = 7;
-            ButtonResignAll.Text = "Resign All";
+            ButtonResignAll.Size = new Size(84, 23);
+            ButtonResignAll.TabIndex = 8;
+            ButtonResignAll.Text = "RESIGN ALL";
             ButtonResignAll.UseVisualStyleBackColor = true;
             ButtonResignAll.Click += ButtonResignAll_Click;
             // 
@@ -214,7 +219,7 @@
             versionLabel.Name = "versionLabel";
             versionLabel.Size = new Size(46, 15);
             versionLabel.TabIndex = 14;
-            versionLabel.Text = "v1.0.2.0";
+            versionLabel.Text = "v1.0.3.0";
             // 
             // authorLabel
             // 
@@ -254,9 +259,9 @@
             // 
             ButtonOpenOutputDir.AllowDrop = true;
             ButtonOpenOutputDir.ForeColor = Color.OliveDrab;
-            ButtonOpenOutputDir.Location = new Point(254, 126);
+            ButtonOpenOutputDir.Location = new Point(282, 126);
             ButtonOpenOutputDir.Name = "ButtonOpenOutputDir";
-            ButtonOpenOutputDir.Size = new Size(37, 23);
+            ButtonOpenOutputDir.Size = new Size(30, 23);
             ButtonOpenOutputDir.TabIndex = 10;
             ButtonOpenOutputDir.Text = "📁";
             toolTip1.SetToolTip(ButtonOpenOutputDir, "Open the _OUTPUT directory");
@@ -265,12 +270,13 @@
             // 
             // ButtonAbort
             // 
+            ButtonAbort.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
             ButtonAbort.ForeColor = Color.Brown;
-            ButtonAbort.Location = new Point(295, 126);
+            ButtonAbort.Location = new Point(318, 126);
             ButtonAbort.Name = "ButtonAbort";
-            ButtonAbort.Size = new Size(75, 23);
+            ButtonAbort.Size = new Size(55, 23);
             ButtonAbort.TabIndex = 9;
-            ButtonAbort.Text = "Abort";
+            ButtonAbort.Text = "ABORT";
             ButtonAbort.UseVisualStyleBackColor = true;
             ButtonAbort.Visible = false;
             ButtonAbort.Click += ButtonAbort_Click;
@@ -280,9 +286,9 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(510, 185);
+            Controls.Add(ButtonAbort);
             Controls.Add(ButtonOpenOutputDir);
             Controls.Add(ButtonBruteforceSteamID);
-            Controls.Add(ButtonAbort);
             Controls.Add(ButtonChangePlaces);
             Controls.Add(authorLabel);
             Controls.Add(versionLabel);

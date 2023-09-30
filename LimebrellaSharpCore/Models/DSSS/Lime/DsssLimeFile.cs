@@ -19,12 +19,7 @@ public class DsssLimeFile
     /// Footer of DSSSLime file.
     /// </summary>
     public DsssLimeFooter Footer { get; set; } = new();
-
-    /// <summary>
-    /// A path to DSSS '*.bin' archive.
-    /// </summary>
-    private string DsssPath { get; set; } = "";
-
+    
     /// <summary>
     /// Hashes needed to calculate checksum.
     /// </summary>
@@ -43,17 +38,16 @@ public class DsssLimeFile
     /// </summary>
     /// <param name="filePath"></param>
     /// <returns></returns>
-    public BoolResult LoadFile(string filePath)
+    public BoolResult SetFileData(string filePath)
     {
-        DsssPath = filePath;
-        FileStream stream;
+        FileStream fs;
         try
         {
-            stream = File.OpenRead(DsssPath);
+            fs = File.OpenRead(filePath);
         }
         catch { return new BoolResult(false, "Couldn't load the file. Error on trying to open the file."); }
 
-        using BinReader br = new(stream);
+        using BinReader br = new(fs);
         try
         {
             // try to load header data into the Header
@@ -64,7 +58,7 @@ public class DsssLimeFile
         var test = Header.CheckIntegrity();
         if (!test.Result) return new BoolResult(test.Result, $"Couldn't load the file. {test.Description}");
 
-        var segmentsLength = stream.Length - (Marshal.SizeOf<DsssHeader>() + Marshal.SizeOf<DsssLimeFooter>());
+        var segmentsLength = fs.Length - (Marshal.SizeOf<DsssHeader>() + Marshal.SizeOf<DsssLimeFooter>());
         var segmentsCount = segmentsLength / Marshal.SizeOf<DsssLimeDataSegment>();
 
         // overwrite Segments collection
@@ -91,10 +85,10 @@ public class DsssLimeFile
     }
 
     /// <summary>
-    /// Save an existing object of a DsssLime type as a new '*.bin' archive.
+    /// Get an existing object of a DsssLime type as byte array.
     /// </summary>
-    /// <param name="filePath"></param>
-    public void SaveFile(string filePath)
+    /// <returns></returns>
+    public Span<byte> GetFileData()
     {
         // randomize footer salt
         Footer.GenerateSalt();
@@ -114,8 +108,53 @@ public class DsssLimeFile
         // sign file
         SignFile(ref dataAsInts);
 
-        // save file
-        File.WriteAllBytes(filePath, dataAsBytes.ToArray());
+        // return data
+        return dataAsBytes;
+    }
+
+    /// <summary>
+    /// Sets Segments of an existing object of a DsssLime type based on file in a given directory <see cref="filePath"/>.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <returns></returns>
+    public BoolResult SetFileSegments(string filePath)
+    {
+        FileStream fs;
+        try
+        {
+            fs = File.OpenRead(filePath);
+        }
+        catch { return new BoolResult(false, "Couldn't load the file. Error on trying to open the file."); }
+
+        var numberOfSegments = (int)Math.Ceiling((double)fs.Length / 0x1000);
+        Segments = new DsssLimeDataSegment[numberOfSegments];
+
+        for (var i = 0; i < numberOfSegments; i++)
+        {
+            Segments[i] = new DsssLimeDataSegment();
+            // load data
+            fs.Read(Segments[i].SegmentData, 0, Segments[i].SegmentData.Length);
+            // set default HashedKeyBanks
+            for (var j = 0; j < Segments[i].HashedKeyBanks.Length; j++)
+                Segments[i].HashedKeyBanks[j] = new DsssLimeHashedKeyBank();
+        }
+
+        // save length of decrypted data
+        Footer.DecryptedDataLength = fs.Length;
+
+        return new BoolResult(true);
+    }
+
+    /// <summary>
+    /// Get all Segments of an existing object of a DsssLime type as Span&lt;byte&gt;.
+    /// </summary>
+    /// <returns></returns>
+    public Span<byte> GetFileSegments()
+    {
+        using MemoryStream ms = new();
+        foreach (var segment in Segments) ms.Write(segment.SegmentData);
+        ms.SetLength(Footer.DecryptedDataLength);
+        return ms.ToArray().AsSpan();
     }
 
     /// <summary>
