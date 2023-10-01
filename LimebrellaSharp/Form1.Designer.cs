@@ -106,7 +106,7 @@
             // 
             ButtonPackAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
             ButtonPackAll.ForeColor = SystemColors.ControlText;
-            ButtonPackAll.Location = new Point(102, 126);
+            ButtonPackAll.Location = new Point(99, 126);
             ButtonPackAll.Name = "ButtonPackAll";
             ButtonPackAll.Size = new Size(84, 23);
             ButtonPackAll.TabIndex = 7;

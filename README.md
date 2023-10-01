@@ -37,15 +37,23 @@ There are three ways to achieve this. The first one is to drop the SaveData file
 ## Unpacking data
 Type in the Steam32_ID that was used to pack the SaveData file\s, into a TextBox **(3)** and press the **"Unpack All"** button **(6)**.
 
-## Resigning files
-Type in the Steam32_ID that was used to pack the SaveData file\s, into a TextBox **(3)**.   
-Then, type in the Steam32_ID, that you want to pack the SaveData file\s with, into a TextBox **(4)**. If you don't know your SteamID, then you can use [this site](https://www.steamidfinder.com) to find it. Once you have them typed in, just click the **"Resign All"** button **(7)** to resign all SaveData files.
+> **Note:** After that, you can find the unpacked files inside the ".\\_OUTPUT" directory.
 
 ## Packing data
-Type in the Steam32_ID that you want to pack the SaveData file\s with, into a TextBox **(4)** and press the **"Pack All"** button **(8)**.
+Type in the Steam32_ID that you want to pack the SaveData file\s with, into a TextBox **(4)** and press the **"Pack All"** button **(7)**.
+
+> **Note:** After that, you can find the packed files inside the ".\\_OUTPUT" directory.
+
+## Resigning files
+If you just want to resign your SaveData files to use them on another Steam Account then follow the steps below.
+
+First, type in the Steam32_ID that was used to pack the SaveData file\s, into a TextBox **(3)**. It is a numeric ID of a Steam Account that belongs to the person that gave you their SaveData files.
+Then, type in the Steam32_ID, that you want to pack the SaveData file\s with, into a TextBox **(4)**. This should be a numeric ID of a Steam Account on which you would like to load up the resigned SaveData files. If you don't know your SteamID, then you can use [this site](https://www.steamidfinder.com) to find it. Once you have both IDs typed in, just click the **"Resign All"** button **(8)** to resign all SaveData files.
+
+> **Note:** After that, you can find the packed files inside the ".\\_OUTPUT" directory. All of them are signed with the Steam32_ID from the TextBox **(4)**.
 
 ## Open the Output Directory
-You can open the Output directory in a new Explorer window by using the button **(9)**.
+You can open the **".\\_OUTPUT"** directory in a new Explorer window by using the button **(9)**.
 
 ## Other buttons
 Button **(5)** swaps TextBox **(3)** and TextBox **(4)** values.

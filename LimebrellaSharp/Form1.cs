@@ -132,8 +132,8 @@ public partial class Form1 : Form
     {
         if (_isBusy) return;
         _isBusy = true;
-        CreateDirectories();
         ValidateSteamId();
+        CreateDirectories();
         var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
         var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
         _cts = new CancellationTokenSource();
@@ -173,17 +173,20 @@ public partial class Form1 : Form
             pPercentage.Report(progress);
             Parallel.For((long)0, files.Length, po, (ctr) =>
             {
+                // load file
                 var dsssFile = new DsssLimeFile();
                 var resultRead = dsssFile.SetFileData(files[ctr]);
                 if (!resultRead.Result) goto ORDER_66;
 
+                // decrypt file
                 if (!limeDeencryptor.Limetree(dsssFile, steamId)) return;
 
+                // save file
                 var filePath = Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr]));
                 var fileSegments = dsssFile.GetFileSegments();
                 var writeResult = WriteBytesToFile(filePath, fileSegments);
 
-                if (writeResult) unpackedFiles++; 
+                if (writeResult) unpackedFiles++;
                 ORDER_66:
                 Interlocked.Increment(ref progress);
                 pText.Report($@"[{progress}/{files.Length}] Processing files...");
@@ -194,13 +197,83 @@ public partial class Form1 : Form
             pPercentage.Report(100);
         });
     }
-    
+
+    private async void ButtonPackAll_Click(object sender, EventArgs e)
+    {
+        if (_isBusy) return;
+        _isBusy = true;
+        ValidateSteamId();
+        CreateDirectories();
+        var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
+        var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
+        _cts = new CancellationTokenSource();
+        ButtonAbort.Visible = true;
+
+        try
+        {
+            await PackAll(pText, pPercentage);
+        }
+        catch (OperationCanceledException)
+        {
+            toolStripStatusLabel1.Text = @"The operation was aborted by the user.";
+        }
+        AbortOperation();
+    }
+    private Task PackAll(IProgress<string> pText, IProgress<int> pPercentage)
+    {
+        return Task.Run(() =>
+        {
+            if (!DoesInputDirectoryExists()) return;
+
+            var limeDeencryptor = new LimeDeencryptor();
+
+            var steamIdRight = ulong.TryParse(TBSteamIdRight.Text, out var result) ? result : 0;
+            var packedFiles = 0;
+
+            var files = Directory.GetFiles(TBFilepath.Text);
+
+            ParallelOptions po = new()
+            {
+                CancellationToken = _cts.Token,
+                MaxDegreeOfParallelism = Environment.ProcessorCount - 1
+            };
+
+            var progress = 0;
+            pText.Report($@"[{progress}/{files.Length}] Processing files...");
+            pPercentage.Report(progress);
+            Parallel.For((long)0, files.Length, po, ctr =>
+            {
+                // load file
+                var dsssFile = new DsssLimeFile();
+                var resultRead = dsssFile.SetFileSegments(files[ctr]);
+                if (!resultRead.Result) goto ORDER_66;
+
+                // encrypt
+                limeDeencryptor.Limetree(dsssFile, steamIdRight, true);
+
+                // save file
+                var filePath = Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr]));
+                var fileData = dsssFile.GetFileData();
+                var writeResult = WriteBytesToFile(filePath, fileData);
+
+                if (writeResult) packedFiles++;
+                ORDER_66:
+                Interlocked.Increment(ref progress);
+                pText.Report($@"[{progress}/{files.Length}] Processing files...");
+                pPercentage.Report((int)((double)progress / files.Length * 100));
+
+            });
+            pText.Report($@"Packing done. Number of packed files: {packedFiles}.");
+            pPercentage.Report(100);
+        });
+    }
+
     private async void ButtonResignAll_Click(object sender, EventArgs e)
     {
         if (_isBusy) return;
         _isBusy = true;
-        CreateDirectories();
         ValidateSteamId();
+        CreateDirectories();
         var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
         var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
         _cts = new CancellationTokenSource();
@@ -241,6 +314,7 @@ public partial class Form1 : Form
             pPercentage.Report(progress);
             Parallel.For((long)0, files.Length, po, ctr =>
             {
+                // load file
                 var dsssFile = new DsssLimeFile();
                 var resultRead = dsssFile.SetFileData(files[ctr]);
                 if (!resultRead.Result) goto ORDER_66;
@@ -253,10 +327,10 @@ public partial class Form1 : Form
 
                 // save file
                 var filePath = Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr]));
-                var fileSegments = dsssFile.GetFileData();
-                var writeResult = WriteBytesToFile(filePath, fileSegments);
+                var fileData = dsssFile.GetFileData();
+                var writeResult = WriteBytesToFile(filePath, fileData);
 
-                if (writeResult) resignedFiles++; 
+                if (writeResult) resignedFiles++;
                 ORDER_66:
                 Interlocked.Increment(ref progress);
                 pText.Report($@"[{progress}/{files.Length}] Processing files...");
@@ -267,81 +341,12 @@ public partial class Form1 : Form
         });
     }
 
-    private async void ButtonPackAll_Click(object sender, EventArgs e)
-    {
-        if (_isBusy) return;
-        _isBusy = true;
-        CreateDirectories();
-        ValidateSteamId();
-        var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
-        var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
-        _cts = new CancellationTokenSource();
-        ButtonAbort.Visible = true;
-
-        try
-        {
-            await PackAll(pText, pPercentage);
-        }
-        catch (OperationCanceledException)
-        {
-            toolStripStatusLabel1.Text = @"The operation was aborted by the user.";
-        }
-        AbortOperation();
-    }
-    private Task PackAll(IProgress<string> pText, IProgress<int> pPercentage)
-    {
-        return Task.Run(() =>
-        {
-            if (!DoesInputDirectoryExists()) return;
-
-            var limeDeencryptor = new LimeDeencryptor();
-
-            var steamIdRight = ulong.TryParse(TBSteamIdRight.Text, out var result) ? result : 0;
-            var packedFiles = 0;
-
-            var files = Directory.GetFiles(TBFilepath.Text);
-
-            ParallelOptions po = new()
-            {
-                CancellationToken = _cts.Token,
-                MaxDegreeOfParallelism = Environment.ProcessorCount - 1
-            };
-
-            var progress = 0;
-            pText.Report($@"[{progress}/{files.Length}] Processing files...");
-            pPercentage.Report(progress);
-            Parallel.For((long)0, files.Length, po, ctr =>
-            {
-                var dsssFile = new DsssLimeFile();
-                var resultRead = dsssFile.SetFileSegments(files[ctr]);
-                if (!resultRead.Result) goto ORDER_66;
-                
-                // encrypt
-                limeDeencryptor.Limetree(dsssFile, steamIdRight, true);
-                
-                // save file
-                var filePath = Path.Combine(AppInfo.OutputPath, Path.GetFileName(files[ctr]));
-                var fileSegments = dsssFile.GetFileData();
-                var writeResult = WriteBytesToFile(filePath, fileSegments);
-
-                if (writeResult) packedFiles++; 
-                ORDER_66:
-                Interlocked.Increment(ref progress);
-                pText.Report($@"[{progress}/{files.Length}] Processing files...");
-                pPercentage.Report((int)((double)progress / files.Length * 100));
-
-            });
-            pText.Report($@"Packing done. Number of packed files: {packedFiles}.");
-            pPercentage.Report(100);
-        });
-    }
-
     private async void ButtonBruteforceSteamID_Click(object sender, EventArgs e)
     {
         if (_isBusy) return;
         _isBusy = true;
-        CreateDirectories();
         ValidateSteamId();
+        CreateDirectories();
         var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
         var pPercentage = new Progress<int>(i => toolStripProgressBar1.Value = i);
         ButtonAbort.Visible = true;
