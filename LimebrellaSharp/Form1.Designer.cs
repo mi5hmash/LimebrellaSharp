@@ -30,7 +30,7 @@
         {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            TBSteamIdLeft = new TextBox();
+            TBSteamIdInput = new TextBox();
             TBFilepath = new TextBox();
             ButtonSelectDir = new Button();
             ButtonUnpackAll = new Button();
@@ -39,7 +39,7 @@
             LabelFilepath = new Label();
             LabelSteamIdLeft1 = new Label();
             LabelSteamIdRight1 = new Label();
-            TBSteamIdRight = new TextBox();
+            TBSteamIdOutput = new TextBox();
             LabelSteamIdLeft2 = new Label();
             LabelSteamIdRight2 = new Label();
             ButtonResignAll = new Button();
@@ -49,8 +49,8 @@
             versionLabel = new Label();
             authorLabel = new Label();
             toolTip1 = new ToolTip(components);
-            ButtonChangePlaces = new Button();
-            ButtonBruteforceSteamID = new Button();
+            ButtonInterchange = new Button();
+            ButtonBruteforceSteamId = new Button();
             ButtonOpenOutputDir = new Button();
             folderBrowserDialog1 = new FolderBrowserDialog();
             ButtonAbort = new Button();
@@ -58,12 +58,13 @@
             statusStrip1.SuspendLayout();
             SuspendLayout();
             // 
-            // TBSteamIdLeft
+            // TBSteamIdInput
             // 
-            TBSteamIdLeft.Location = new Point(12, 87);
-            TBSteamIdLeft.Name = "TBSteamIdLeft";
-            TBSteamIdLeft.Size = new Size(154, 23);
-            TBSteamIdLeft.TabIndex = 3;
+            TBSteamIdInput.Location = new Point(12, 87);
+            TBSteamIdInput.Name = "TBSteamIdInput";
+            TBSteamIdInput.Size = new Size(154, 23);
+            TBSteamIdInput.TabIndex = 3;
+            TBSteamIdInput.Leave += TBSteamIdInput_Leave;
             // 
             // TBFilepath
             // 
@@ -72,9 +73,9 @@
             TBFilepath.Name = "TBFilepath";
             TBFilepath.Size = new Size(325, 23);
             TBFilepath.TabIndex = 1;
-            TBFilepath.TextChanged += TBFilepath_TextChanged;
             TBFilepath.DragDrop += TBFilepath_DragDrop;
             TBFilepath.DragOver += TBFilepath_DragOver;
+            TBFilepath.Leave += TBFilepath_Leave;
             // 
             // ButtonSelectDir
             // 
@@ -92,7 +93,7 @@
             // 
             // ButtonUnpackAll
             // 
-            ButtonUnpackAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            ButtonUnpackAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
             ButtonUnpackAll.ForeColor = SystemColors.ControlText;
             ButtonUnpackAll.Location = new Point(12, 126);
             ButtonUnpackAll.Name = "ButtonUnpackAll";
@@ -104,7 +105,7 @@
             // 
             // ButtonPackAll
             // 
-            ButtonPackAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            ButtonPackAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
             ButtonPackAll.ForeColor = SystemColors.ControlText;
             ButtonPackAll.Location = new Point(99, 126);
             ButtonPackAll.Name = "ButtonPackAll";
@@ -151,17 +152,18 @@
             LabelSteamIdRight1.TabIndex = 9;
             LabelSteamIdRight1.Text = "Steam32 ID";
             // 
-            // TBSteamIdRight
+            // TBSteamIdOutput
             // 
-            TBSteamIdRight.Location = new Point(216, 87);
-            TBSteamIdRight.Name = "TBSteamIdRight";
-            TBSteamIdRight.Size = new Size(157, 23);
-            TBSteamIdRight.TabIndex = 5;
+            TBSteamIdOutput.Location = new Point(216, 87);
+            TBSteamIdOutput.Name = "TBSteamIdOutput";
+            TBSteamIdOutput.Size = new Size(157, 23);
+            TBSteamIdOutput.TabIndex = 5;
+            TBSteamIdOutput.Leave += TBSteamIdOutput_Leave;
             // 
             // LabelSteamIdLeft2
             // 
             LabelSteamIdLeft2.AutoSize = true;
-            LabelSteamIdLeft2.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+            LabelSteamIdLeft2.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             LabelSteamIdLeft2.Location = new Point(76, 69);
             LabelSteamIdLeft2.Name = "LabelSteamIdLeft2";
             LabelSteamIdLeft2.Size = new Size(51, 15);
@@ -171,7 +173,7 @@
             // LabelSteamIdRight2
             // 
             LabelSteamIdRight2.AutoSize = true;
-            LabelSteamIdRight2.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+            LabelSteamIdRight2.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             LabelSteamIdRight2.Location = new Point(280, 69);
             LabelSteamIdRight2.Name = "LabelSteamIdRight2";
             LabelSteamIdRight2.Size = new Size(63, 15);
@@ -180,7 +182,7 @@
             // 
             // ButtonResignAll
             // 
-            ButtonResignAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            ButtonResignAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
             ButtonResignAll.Location = new Point(192, 126);
             ButtonResignAll.Name = "ButtonResignAll";
             ButtonResignAll.Size = new Size(84, 23);
@@ -202,7 +204,7 @@
             // toolStripProgressBar1
             // 
             toolStripProgressBar1.Name = "toolStripProgressBar1";
-            toolStripProgressBar1.Size = new Size(70, 16);
+            toolStripProgressBar1.Size = new Size(60, 16);
             toolStripProgressBar1.Step = 5;
             toolStripProgressBar1.Style = ProgressBarStyle.Continuous;
             // 
@@ -219,41 +221,41 @@
             versionLabel.Name = "versionLabel";
             versionLabel.Size = new Size(46, 15);
             versionLabel.TabIndex = 14;
-            versionLabel.Text = "v1.0.3.0";
+            versionLabel.Text = "v1.1.0.0";
             // 
             // authorLabel
             // 
             authorLabel.AutoSize = true;
-            authorLabel.Font = new Font("Segoe UI", 7F, FontStyle.Regular, GraphicsUnit.Point);
+            authorLabel.Font = new Font("Segoe UI", 7F);
             authorLabel.Location = new Point(423, 145);
             authorLabel.Name = "authorLabel";
             authorLabel.Size = new Size(75, 12);
             authorLabel.TabIndex = 15;
             authorLabel.Text = "Mi5hmasH 2023";
             // 
-            // ButtonChangePlaces
+            // ButtonInterchange
             // 
-            ButtonChangePlaces.Location = new Point(172, 86);
-            ButtonChangePlaces.Name = "ButtonChangePlaces";
-            ButtonChangePlaces.Size = new Size(38, 23);
-            ButtonChangePlaces.TabIndex = 4;
-            ButtonChangePlaces.Text = "⧓";
-            toolTip1.SetToolTip(ButtonChangePlaces, "Change places");
-            ButtonChangePlaces.UseVisualStyleBackColor = true;
-            ButtonChangePlaces.Click += ButtonChangePlaces_Click;
+            ButtonInterchange.Location = new Point(172, 86);
+            ButtonInterchange.Name = "ButtonInterchange";
+            ButtonInterchange.Size = new Size(38, 23);
+            ButtonInterchange.TabIndex = 4;
+            ButtonInterchange.Text = "⧓";
+            toolTip1.SetToolTip(ButtonInterchange, "Interchange");
+            ButtonInterchange.UseVisualStyleBackColor = true;
+            ButtonInterchange.Click += ButtonChangePlaces_Click;
             // 
-            // ButtonBruteforceSteamID
+            // ButtonBruteforceSteamId
             // 
-            ButtonBruteforceSteamID.Enabled = false;
-            ButtonBruteforceSteamID.Location = new Point(144, 61);
-            ButtonBruteforceSteamID.Name = "ButtonBruteforceSteamID";
-            ButtonBruteforceSteamID.Size = new Size(22, 23);
-            ButtonBruteforceSteamID.TabIndex = 999;
-            ButtonBruteforceSteamID.Text = "🔍";
-            toolTip1.SetToolTip(ButtonBruteforceSteamID, "Bruteforce SteamID");
-            ButtonBruteforceSteamID.UseVisualStyleBackColor = true;
-            ButtonBruteforceSteamID.Visible = false;
-            ButtonBruteforceSteamID.Click += ButtonBruteforceSteamID_Click;
+            ButtonBruteforceSteamId.Enabled = false;
+            ButtonBruteforceSteamId.Location = new Point(144, 61);
+            ButtonBruteforceSteamId.Name = "ButtonBruteforceSteamId";
+            ButtonBruteforceSteamId.Size = new Size(22, 23);
+            ButtonBruteforceSteamId.TabIndex = 999;
+            ButtonBruteforceSteamId.Text = "🔍";
+            toolTip1.SetToolTip(ButtonBruteforceSteamId, "Bruteforce SteamID");
+            ButtonBruteforceSteamId.UseVisualStyleBackColor = true;
+            ButtonBruteforceSteamId.Visible = false;
+            ButtonBruteforceSteamId.Click += ButtonBruteforceSteamId_Click;
             // 
             // ButtonOpenOutputDir
             // 
@@ -270,7 +272,7 @@
             // 
             // ButtonAbort
             // 
-            ButtonAbort.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            ButtonAbort.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
             ButtonAbort.ForeColor = Color.Brown;
             ButtonAbort.Location = new Point(318, 126);
             ButtonAbort.Name = "ButtonAbort";
@@ -288,8 +290,8 @@
             ClientSize = new Size(510, 185);
             Controls.Add(ButtonAbort);
             Controls.Add(ButtonOpenOutputDir);
-            Controls.Add(ButtonBruteforceSteamID);
-            Controls.Add(ButtonChangePlaces);
+            Controls.Add(ButtonBruteforceSteamId);
+            Controls.Add(ButtonInterchange);
             Controls.Add(authorLabel);
             Controls.Add(versionLabel);
             Controls.Add(statusStrip1);
@@ -297,7 +299,7 @@
             Controls.Add(LabelSteamIdRight2);
             Controls.Add(LabelSteamIdLeft2);
             Controls.Add(LabelSteamIdRight1);
-            Controls.Add(TBSteamIdRight);
+            Controls.Add(TBSteamIdOutput);
             Controls.Add(LabelSteamIdLeft1);
             Controls.Add(LabelFilepath);
             Controls.Add(pb_AppIcon);
@@ -305,7 +307,7 @@
             Controls.Add(ButtonUnpackAll);
             Controls.Add(ButtonSelectDir);
             Controls.Add(TBFilepath);
-            Controls.Add(TBSteamIdLeft);
+            Controls.Add(TBSteamIdInput);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
@@ -321,7 +323,7 @@
 
         #endregion
 
-        private TextBox TBSteamIdLeft;
+        private TextBox TBSteamIdInput;
         private TextBox TBFilepath;
         private Button ButtonSelectDir;
         private Button ButtonUnpackAll;
@@ -330,7 +332,7 @@
         private Label LabelFilepath;
         private Label LabelSteamIdLeft1;
         private Label LabelSteamIdRight1;
-        private TextBox TBSteamIdRight;
+        private TextBox TBSteamIdOutput;
         private Label LabelSteamIdLeft2;
         private Label LabelSteamIdRight2;
         private Button ButtonResignAll;
@@ -340,10 +342,10 @@
         private Label versionLabel;
         private Label authorLabel;
         private ToolTip toolTip1;
-        private Button ButtonChangePlaces;
+        private Button ButtonInterchange;
         private FolderBrowserDialog folderBrowserDialog1;
         private Button ButtonAbort;
-        private Button ButtonBruteforceSteamID;
+        private Button ButtonBruteforceSteamId;
         private Button ButtonOpenOutputDir;
     }
 }

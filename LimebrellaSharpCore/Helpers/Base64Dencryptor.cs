@@ -84,13 +84,13 @@ public static class Base64Dencryptor
     public static string ToUnicodeString(this byte[] bytes) => Encoding.Unicode.GetString(bytes);
 
     /// <summary>
-    /// Turns a Utf8 string into a byte array.
+    /// Turns an Utf8 string into a byte array.
     /// </summary>
     /// <param name="str"></param>
     /// <returns></returns>
     public static byte[] FromUtf8String(this string str) => Encoding.UTF8.GetBytes(str);
     /// <summary>
-    /// Turns a byte array into a Utf8 string.
+    /// Turns a byte array into an Utf8 string.
     /// </summary>
     /// <param name="bytes"></param>
     /// <returns></returns>

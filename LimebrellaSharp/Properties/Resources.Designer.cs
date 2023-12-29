@@ -69,5 +69,14 @@ namespace LimebrellaSharp.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        
+        /// <summary>
+        ///   Wyszukuje zlokalizowany zasób typu System.IO.UnmanagedMemoryStream podobny do zasobu System.IO.MemoryStream.
+        /// </summary>
+        internal static System.IO.UnmanagedMemoryStream typewritter_machine {
+            get {
+                return ResourceManager.GetStream("typewritter_machine", resourceCulture);
+            }
+        }
     }
 }

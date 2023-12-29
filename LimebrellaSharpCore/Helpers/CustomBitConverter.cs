@@ -7,7 +7,7 @@ namespace LimebrellaSharpCore.Helpers;
 public static class CustomBitConverter
 {
     /// <summary>
-    /// Splits an <see cref="inputString"/> into chunks of fixed <see cref="chunkSize"/>.
+    /// Splits a <paramref name="inputString"/> into chunks of fixed <paramref name="chunkSize"/>.
     /// </summary>
     /// <param name="inputString"></param>
     /// <param name="chunkSize"></param>
@@ -67,7 +67,7 @@ public static class CustomBitConverter
         var size = Marshal.SizeOf<T>();
 
         var buff = new byte[size];
-        bin.Read(buff, 0, size);
+        _ = bin.Read(buff, 0, size);
 
         return ToStruct<T>(buff);
     }
@@ -105,11 +105,11 @@ public static class CustomBitConverter
     /// </summary>
     /// <param name="bytes"></param>
     /// <returns></returns>
-    public static string ToHexString(this byte[] bytes) => 
+    public static string ToHexString(this byte[] bytes) =>
         BitConverter.ToString(bytes).Replace("-", string.Empty);
-    
+
     /// <summary>
-    /// Turns a hex string into a ulong array.
+    /// Turns a hex string into an ulong array.
     /// </summary>
     /// <param name="str"></param>
     /// <param name="isBigEndian"></param>
@@ -117,18 +117,18 @@ public static class CustomBitConverter
     public static ulong[] ToUlongArray(this string str, bool isBigEndian = true)
     {
         var strArr = SplitStringIntoChunks(str.Replace(" ", "").Replace("-", ""), 16);
-        List<ulong> uLongs = new();
+        List<ulong> uLongs = [];
         foreach (var chunk in strArr)
         {
-            var formattedChunk = "";
+            var formattedChunk = string.Empty;
             if (isBigEndian) formattedChunk = string.Join("", Enumerable.Range(0, chunk.Length / 2).Select(i => chunk.Substring(i * 2, 2)).Reverse());
-            uLongs.Add(Convert.ToUInt64(formattedChunk, 16)); 
+            uLongs.Add(Convert.ToUInt64(formattedChunk, 16));
         }
-        return uLongs.ToArray();
+        return [.. uLongs];
     }
 
     /// <summary>
-    /// Turns a hex string into a uint array.
+    /// Turns a hex string into an uint array.
     /// </summary>
     /// <param name="str"></param>
     /// <param name="isBigEndian"></param>
@@ -136,14 +136,14 @@ public static class CustomBitConverter
     public static uint[] ToUintArray(this string str, bool isBigEndian = true)
     {
         var strArr = SplitStringIntoChunks(str.Replace(" ", "").Replace("-", ""), 8);
-        List<uint> uInts = new();
+        List<uint> uInts = [];
         foreach (var chunk in strArr)
         {
-            var formattedChunk = "";
+            var formattedChunk = string.Empty;
             if (isBigEndian) formattedChunk = string.Join("", Enumerable.Range(0, chunk.Length / 2).Select(i => chunk.Substring(i * 2, 2)).Reverse());
             uInts.Add(Convert.ToUInt32(formattedChunk, 16));
         }
-        return uInts.ToArray();
+        return [.. uInts];
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ public static class CustomBitConverter
     public static string ToHexString(this ulong int64, bool isBigEndian = true)
     {
         var str = int64.ToString("X").PadLeft(16, '0');
-        var iEnum = isBigEndian ? Enumerable.Range(0, str.Length / 2).Select(i => str.Substring(i * 2, 2)).Reverse() 
+        var iEnum = isBigEndian ? Enumerable.Range(0, str.Length / 2).Select(i => str.Substring(i * 2, 2)).Reverse()
             : Enumerable.Range(0, str.Length / 2).Select(i => str.Substring(i * 2, 2));
         return string.Join(" ", iEnum.ToArray());
     }
@@ -165,6 +165,6 @@ public static class CustomBitConverter
     /// <param name="int64"></param>
     /// <param name="isBigEndian"></param>
     /// <returns></returns>
-    public static string ToHexString(this ulong[] int64, bool isBigEndian = true) => 
+    public static string ToHexString(this ulong[] int64, bool isBigEndian = true) =>
         string.Join(" ", int64.Select(chunk => chunk.ToHexString(isBigEndian)).ToList());
 }

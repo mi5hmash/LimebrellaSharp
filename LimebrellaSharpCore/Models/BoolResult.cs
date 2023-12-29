@@ -1,14 +1,8 @@
 ﻿namespace LimebrellaSharpCore.Models;
 
-public class BoolResult
+public class BoolResult(bool result, string description = "")
 {
-    public bool Result { get; set; }
+    public bool Result { get; set; } = result;
 
-    public string Description { get; set; }
-
-    public BoolResult(bool result, string description = "")
-    {
-        Result = result;
-        Description = description;
-    }
+    public string Description { get; set; } = description;
 }

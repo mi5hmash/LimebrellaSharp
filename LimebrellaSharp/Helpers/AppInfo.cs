@@ -24,15 +24,7 @@ public static class AppInfo
     public static string Copyright => GetCopyright();
 
     #endregion
-
-    #region OTHER INFO
-
-    public static string OutputFolder => "_OUTPUT";
-
-    public static string OutputPath => Path.Combine(RootPath, OutputFolder);
-
-    #endregion
-
+    
     #region METHODS
 
     /// <summary>

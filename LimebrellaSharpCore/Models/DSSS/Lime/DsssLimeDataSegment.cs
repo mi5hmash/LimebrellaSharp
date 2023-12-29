@@ -51,7 +51,7 @@ public class DsssLimeDataSegment
     }
 
     /// <summary>
-    /// Checks <see cref="SegmentChecksum"/> against <see cref="segmentChecksum"/>.
+    /// Checks <see cref="SegmentChecksum"/> against <paramref name="segmentChecksum"/>.
     /// </summary>
     /// <param name="segmentChecksum"></param>
     /// <returns></returns>

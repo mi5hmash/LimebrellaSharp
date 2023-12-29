@@ -22,7 +22,6 @@ public class LimeDeencryptor
     private readonly byte[] _checksumTable1;
     private readonly byte[] _checksumTable2;
     private readonly ulong[] _checksumTable3;
-    private readonly byte[] _keygenControl;
 
     #endregion
 
@@ -42,8 +41,6 @@ public class LimeDeencryptor
             .Base64DecodeUtf8().ToBytes();
         _checksumTable3 = "MDEwMDAwMDAwMDAwMDAwMDgyODAwMDAwMDAwMDAwMDA4QTgwMDAwMDAwMDAwMDgwMDA4MDAwODAwMDAwMDA4MDhCODAwMDAwMDAwMDAwMDAwMTAwMDA4MDAwMDAwMDAwODE4MDAwODAwMDAwMDA4MDA5ODAwMDAwMDAwMDAwODA4QTAwMDAwMDAwMDAwMDAwODgwMDAwMDAwMDAwMDAwMDA5ODAwMDgwMDAwMDAwMDAwQTAwMDA4MDAwMDAwMDAwOEI4MDAwODAwMDAwMDAwMDhCMDAwMDAwMDAwMDAwODA4OTgwMDAwMDAwMDAwMDgwMDM4MDAwMDAwMDAwMDA4MDAyODAwMDAwMDAwMDAwODA4MDAwMDAwMDAwMDAwMDgwMEE4MDAwMDAwMDAwMDAwMDBBMDAwMDgwMDAwMDAwODA4MTgwMDA4MDAwMDAwMDgwODA4MDAwMDAwMDAwMDA4MDAxMDAwMDgwMDAwMDAwMDAwODgwMDA4MDAwMDAwMDgwMDEwMzA2MEEwRjE1MUMyNA=="
             .Base64DecodeUtf8().ToUlongArray();
-        _keygenControl = "MDEwMjA0MDgxMDIwNDA4MDFCMzY2Q0Q4QUI0RDlB"
-            .Base64DecodeUtf8().ToBytes();
     }
 
     #region HELPER FUNCS
@@ -222,7 +219,7 @@ public class LimeDeencryptor
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
-    /// <returns>Modifies <see cref="containerA"/></returns>
+    /// <returns>Modifies <paramref name="containerA"/></returns>
     private static void EncryptionThirdSub(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
         byte testA = 0;
@@ -242,7 +239,7 @@ public class LimeDeencryptor
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
-    /// <returns>Modifies <see cref="containerA"/></returns>
+    /// <returns>Modifies <paramref name="containerA"/></returns>
     private static void EncryptionThirdAdd(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
         byte testA = 0;
@@ -288,13 +285,32 @@ public class LimeDeencryptor
     /// </summary>
     /// <param name="aesRoundKeys"></param>
     /// <param name="inputKey"></param>
-    private void AesKeygen(ref Span<Vector128<byte>> aesRoundKeys, ReadOnlySpan<Vector128<byte>> inputKey)
+    private static void AesKeygen(ref Span<Vector128<byte>> aesRoundKeys, ReadOnlySpan<Vector128<byte>> inputKey)
     {
         // build the first block
         aesRoundKeys[0] = inputKey[0];
         for (var i = 0; i < EncSteps; i++)
         {
-            var innerRoundKey = Aes.KeygenAssist(aesRoundKeys[i], _keygenControl[i]);
+            var innerRoundKey = i switch
+            {
+                0 => Aes.KeygenAssist(aesRoundKeys[i], 0x01),
+                1 => Aes.KeygenAssist(aesRoundKeys[i], 0x02),
+                2 => Aes.KeygenAssist(aesRoundKeys[i], 0x04),
+                3 => Aes.KeygenAssist(aesRoundKeys[i], 0x08),
+                4 => Aes.KeygenAssist(aesRoundKeys[i], 0x10),
+                5 => Aes.KeygenAssist(aesRoundKeys[i], 0x20),
+                6 => Aes.KeygenAssist(aesRoundKeys[i], 0x40),
+                7 => Aes.KeygenAssist(aesRoundKeys[i], 0x80),
+                8 => Aes.KeygenAssist(aesRoundKeys[i], 0x1B),
+                9 => Aes.KeygenAssist(aesRoundKeys[i], 0x36),
+                // unused encryption steps
+                //10 => 0x6C,
+                //11 => 0xD8,
+                //12 => 0xAB,
+                //13 => 0x4D,
+                //14 => 0x9A,
+                _ => Aes.KeygenAssist(aesRoundKeys[i], 0x0)
+            };
             // Shift xmm2 left by 4 bytes
             var shift1 = Sse2.ShiftLeftLogical128BitLane(aesRoundKeys[i].AsUInt32(), 4).AsInt32();
             // Shift shift1 left by 4 bytes
@@ -444,7 +460,7 @@ public class LimeDeencryptor
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
     /// <param name="containerC"></param>
-    /// <returns>Modifies <see cref="containerA"/></returns>
+    /// <returns>Modifies <paramref name="containerA"/></returns>
     private void Limegator(Span<ulong> containerA, ReadOnlySpan<ulong> containerB, ReadOnlySpan<ulong> containerC)
     {
         Span<ulong> localContainerA = stackalloc ulong[CLengthMax];
@@ -503,11 +519,11 @@ public class LimeDeencryptor
     }
 
     /// <summary>
-    /// Decrypts or encrypts <see cref="inputDataAsVectors"/>. 
+    /// Decrypts or encrypts <paramref name="inputDataAsVectors"/>. 
     /// </summary>
     /// <param name="inputDataAsVectors"></param>
     /// <param name="roundKeys"></param>
-    /// <returns>Modifies <see cref="inputDataAsVectors"/></returns>
+    /// <returns>Modifies <paramref name="inputDataAsVectors"/></returns>
     private static void Deencrypt(Span<Vector128<byte>> inputDataAsVectors, ReadOnlySpan<Vector128<byte>> roundKeys)
     {
         var key = roundKeys[^1];
@@ -601,14 +617,20 @@ public class LimeDeencryptor
         }
     }
 
+    public enum Mode
+    {
+        Encrypt,
+        Decrypt
+    }
+    
     /// <summary>
     /// Lime domain.
     /// </summary>
-    /// <param name="limeFile"></param>
+    /// <param name="segments"></param>
     /// <param name="steamId"></param>
-    /// <param name="encrypt"></param>
+    /// <param name="mode"></param>
     /// <returns></returns>
-    public bool Limetree(DsssLimeFile limeFile, ulong steamId, bool encrypt = false)
+    public bool Limetree(Span<DsssLimeDataSegment> segments, ulong steamId, Mode mode)
     {
         // load key into container
         Span<ulong> cKey1 = stackalloc ulong[CLengthMax];
@@ -621,7 +643,6 @@ public class LimeDeencryptor
         Span<ulong> cHashPublicKeysResult = stackalloc ulong[CLengthMax];
         Span<Vector128<byte>> aesRoundKeys = stackalloc Vector128<byte>[2 * AesBlockLength + 1];
         Span<ulong> checksumContainer = stackalloc ulong[ChecksumContainerLength];
-        Span<DsssLimeDataSegment> segments = limeFile.Segments;
 
         // calculate header and seed
         Span<ulong> cKeyType = stackalloc ulong[CLengthMax];
@@ -630,7 +651,7 @@ public class LimeDeencryptor
         Span<ulong> cHashedKeyPart = stackalloc ulong[CLengthMax];
         Span<ulong> cRandomizer = stackalloc ulong[CLengthMax];
         var cRandomizerAsBytes = MemoryMarshal.Cast<ulong, byte>(cRandomizer[..(cRandomizer.Length / sizeof(byte) * sizeof(byte))]);
-        if (encrypt)
+        if (mode == Mode.Encrypt)
         {
             // load key type into container
             cKeyType[0] = KeyType;
@@ -650,7 +671,7 @@ public class LimeDeencryptor
             Span<byte> dataAsBytes = segments[i].SegmentData;
             var dataAsUlongs = MemoryMarshal.Cast<byte, ulong>(dataAsBytes[..(dataAsBytes.Length / sizeof(ulong) * sizeof(ulong))]);
             
-            if (encrypt)
+            if (mode == Mode.Encrypt)
             {
                 for (var j = 0; j < segments[i].HashedKeyBanks.Length; j++)
                 {
@@ -682,7 +703,7 @@ public class LimeDeencryptor
             Deencrypt(dataAsVectors128, aesRoundKeys);
 
             // compare a newly calculated checksum with the old one on the first segment and break loop if not equal
-            if (!encrypt && i == 0)
+            if (mode == Mode.Decrypt && i == 0)
             {
                 LimeChecksum(ref checksumContainer, dataAsUlongs);
                 if (!segments[i].ValidateSegmentChecksum(checksumContainer)) return false;
@@ -692,11 +713,11 @@ public class LimeDeencryptor
     }
 
     /// <summary>
-    /// AKA Limepick. Very slow, but effective. This is an ultimate act of desperation.
+    /// Very slow, but effective. This is an ultimate act of desperation.
     /// </summary>
     /// <param name="limeSegment"></param>
     /// <param name="steamId"></param>
-    public bool BruteforceLime(DsssLimeDataSegment limeSegment, ulong steamId)
+    public bool LimepickSegment(DsssLimeDataSegment limeSegment, ulong steamId)
     {
         // load key into container
         Span<ulong> cKey1 = stackalloc ulong[CLengthMax];

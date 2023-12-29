@@ -36,32 +36,34 @@ public struct DsssLimeHashedKeyBank
     }
 
     /// <summary>
-    /// Returns a default header value.
+    /// Returns a default <see cref="Header"/> value.
     /// </summary>
     /// <returns></returns>
-    public void SetDefaultHeader() => Header = new ulong[] { 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0, 0x0 };
+    public void SetDefaultHeader() => Header = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0, 0x0
+    ];
 
     /// <summary>
-    /// Returns a default key value.
+    /// Returns a default <see cref="HashedKey"/> value.
     /// </summary>
     /// <returns></returns>
-    public void SetDefaultKey() => HashedKey = new ulong[] { 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0 };
+    public void SetDefaultKey() => HashedKey = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0
+    ];
 
     /// <summary>
-    /// Sets random Header.
+    /// Sets random <see cref="Header"/>.
     /// </summary>
-    public void SetRandomHeader() => SetHeader(RandomUlongArray(4));
+    public readonly void SetRandomHeader() => SetHeader(RandomUlongArray(4));
 
     /// <summary>
-    /// Sets random Key.
+    /// Sets random <see cref="HashedKey"/>.
     /// </summary>
-    public void SetRandomKey() => SetKey(RandomUlongArray(5));
+    public readonly void SetRandomKey() => SetKey(RandomUlongArray(5));
 
     /// <summary>
-    /// Sets Header.
+    /// Sets <see cref="Header"/>.
     /// </summary>
     /// <param name="header"></param>
-    public void SetHeader(Span<ulong> header)
+    public readonly void SetHeader(Span<ulong> header)
     {
         Span<ulong> spanHeader = Header;
         spanHeader.Clear();
@@ -69,10 +71,10 @@ public struct DsssLimeHashedKeyBank
     }
 
     /// <summary>
-    /// Sets Key.
+    /// Sets <see cref="HashedKey"/>.
     /// </summary>
     /// <param name="key"></param>
-    public void SetKey(Span<ulong> key)
+    public readonly void SetKey(Span<ulong> key)
     {
         Span<ulong> spanHashedKey = HashedKey;
         spanHashedKey.Clear();
