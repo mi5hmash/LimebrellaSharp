@@ -1,7 +1,7 @@
 [![Release Version](https://img.shields.io/github/v/tag/mi5hmash/LimebrellaSharp?label=version)](https://github.com/mi5hmash/LimebrellaSharp/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-Unlicense-blueviolet.svg)](https://opensource.org/licenses/MIT)
 [![Visual Studio 2022](https://img.shields.io/badge/VS%202022-blueviolet?logo=visualstudio&logoColor=white)](https://visualstudio.microsoft.com/)
-[![dotNET7](https://img.shields.io/badge/.NET%207-blueviolet)](https://visualstudio.microsoft.com/)
+[![dotNET7](https://img.shields.io/badge/.NET%208-blueviolet)](https://visualstudio.microsoft.com/)
 
 # 🍋☂️ LimebrellaSharp - What is it :interrobang:
 This app can **unpack and pack the "Lime" encrypted archives**. It can also **resign files** with your own SteamID to **use any SaveData on your profile**.
