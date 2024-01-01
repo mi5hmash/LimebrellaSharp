@@ -69,6 +69,10 @@ public class DsssLimeFile
         // try to load decrypted file
         if (!IsEncrypted)
         {
+            LimeHeader = new DsssLimeHeader();
+            Footer = new DsssLimeFooter();
+            try { fs = File.OpenRead(filePath); }
+            catch { return new BoolResult(false, "Couldn't load the file. Error on trying to open the file."); }
             try
             {
                 SetFileSegments(fs);
