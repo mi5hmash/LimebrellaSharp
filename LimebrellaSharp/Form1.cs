@@ -8,8 +8,9 @@ namespace LimebrellaSharp;
 
 public partial class Form1 : Form
 {
+    // Program Core
     private readonly Core _programCore;
-
+    
     public Form1()
     {
         var mediator = new SimpleMediatorWinForms();
@@ -35,6 +36,43 @@ public partial class Form1 : Form
         TBSteamIdInput.Text = @"0";
         TBSteamIdOutput.Text = @"0";
     }
+
+    #region SUPER_USER
+
+    // Super User
+    private const int SuperUserThreshold = 3;
+    private bool _isSuperUser;
+    private int _superUserClicks;
+
+    private void VersionLabel_Click(object sender, EventArgs e)
+    {
+        if (_isSuperUser) return;
+
+        _superUserClicks += 1;
+
+        if (_superUserClicks >= SuperUserThreshold) return;
+
+        // restart superUserTimer
+        superUserTimer.Stop();
+        superUserTimer.Start();
+    }
+
+    private void SuperUserTimer_Tick(object sender, EventArgs e)
+    {
+        superUserTimer.Stop();
+        if (_superUserClicks >= SuperUserThreshold) EnableSuperUser();
+        _superUserClicks = 0;
+    }
+
+    private void EnableSuperUser()
+    {
+        _isSuperUser = true;
+        ButtonPackAll.Visible = true;
+        ButtonUnpackAll.Visible = true;
+        SystemSounds.Beep.Play();
+    }
+
+    #endregion
 
     #region STEAM_ID
 
@@ -137,4 +175,5 @@ public partial class Form1 : Form
     }
 
     #endregion
+
 }

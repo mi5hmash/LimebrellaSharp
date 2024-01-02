@@ -54,6 +54,7 @@
             ButtonOpenOutputDir = new Button();
             folderBrowserDialog1 = new FolderBrowserDialog();
             ButtonAbort = new Button();
+            superUserTimer = new System.Windows.Forms.Timer(components);
             ((System.ComponentModel.ISupportInitialize)pb_AppIcon).BeginInit();
             statusStrip1.SuspendLayout();
             SuspendLayout();
@@ -101,6 +102,7 @@
             ButtonUnpackAll.TabIndex = 6;
             ButtonUnpackAll.Text = "UNPACK ALL";
             ButtonUnpackAll.UseVisualStyleBackColor = true;
+            ButtonUnpackAll.Visible = false;
             ButtonUnpackAll.Click += ButtonUnpackAll_Click;
             // 
             // ButtonPackAll
@@ -113,6 +115,7 @@
             ButtonPackAll.TabIndex = 7;
             ButtonPackAll.Text = "PACK ALL";
             ButtonPackAll.UseVisualStyleBackColor = true;
+            ButtonPackAll.Visible = false;
             ButtonPackAll.Click += ButtonPackAll_Click;
             // 
             // pb_AppIcon
@@ -183,7 +186,7 @@
             // ButtonResignAll
             // 
             ButtonResignAll.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
-            ButtonResignAll.Location = new Point(192, 126);
+            ButtonResignAll.Location = new Point(254, 126);
             ButtonResignAll.Name = "ButtonResignAll";
             ButtonResignAll.Size = new Size(84, 23);
             ButtonResignAll.TabIndex = 8;
@@ -221,7 +224,9 @@
             versionLabel.Name = "versionLabel";
             versionLabel.Size = new Size(46, 15);
             versionLabel.TabIndex = 14;
-            versionLabel.Text = "v1.1.0.0";
+            versionLabel.Text = "v1.1.1.0";
+            versionLabel.Click += VersionLabel_Click;
+            versionLabel.DoubleClick += VersionLabel_Click;
             // 
             // authorLabel
             // 
@@ -231,7 +236,7 @@
             authorLabel.Name = "authorLabel";
             authorLabel.Size = new Size(75, 12);
             authorLabel.TabIndex = 15;
-            authorLabel.Text = "Mi5hmasH 2023";
+            authorLabel.Text = "Mi5hmasH 2024";
             // 
             // ButtonInterchange
             // 
@@ -260,12 +265,12 @@
             // ButtonOpenOutputDir
             // 
             ButtonOpenOutputDir.AllowDrop = true;
-            ButtonOpenOutputDir.ForeColor = Color.OliveDrab;
-            ButtonOpenOutputDir.Location = new Point(282, 126);
+            ButtonOpenOutputDir.ForeColor = Color.Black;
+            ButtonOpenOutputDir.Location = new Point(343, 126);
             ButtonOpenOutputDir.Name = "ButtonOpenOutputDir";
             ButtonOpenOutputDir.Size = new Size(30, 23);
             ButtonOpenOutputDir.TabIndex = 10;
-            ButtonOpenOutputDir.Text = "📁";
+            ButtonOpenOutputDir.Text = "📂";
             toolTip1.SetToolTip(ButtonOpenOutputDir, "Open the _OUTPUT directory");
             ButtonOpenOutputDir.UseVisualStyleBackColor = true;
             ButtonOpenOutputDir.Click += ButtonOpenOutputDir_Click;
@@ -274,7 +279,7 @@
             // 
             ButtonAbort.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
             ButtonAbort.ForeColor = Color.Brown;
-            ButtonAbort.Location = new Point(318, 126);
+            ButtonAbort.Location = new Point(191, 126);
             ButtonAbort.Name = "ButtonAbort";
             ButtonAbort.Size = new Size(55, 23);
             ButtonAbort.TabIndex = 9;
@@ -282,6 +287,11 @@
             ButtonAbort.UseVisualStyleBackColor = true;
             ButtonAbort.Visible = false;
             ButtonAbort.Click += ButtonAbort_Click;
+            // 
+            // superUserTimer
+            // 
+            superUserTimer.Interval = 500;
+            superUserTimer.Tick += SuperUserTimer_Tick;
             // 
             // Form1
             // 
@@ -347,5 +357,6 @@
         private Button ButtonAbort;
         private Button ButtonBruteforceSteamId;
         private Button ButtonOpenOutputDir;
+        private System.Windows.Forms.Timer superUserTimer;
     }
 }

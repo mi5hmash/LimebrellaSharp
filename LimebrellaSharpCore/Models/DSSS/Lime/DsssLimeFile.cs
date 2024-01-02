@@ -54,34 +54,27 @@ public class DsssLimeFile
     /// <returns></returns>
     public BoolResult SetFileData(string filePath, bool encryptedFilesOnly = false)
     {
-        // check if file exists 
-        FileStream fs;
-        try { fs = File.OpenRead(filePath); }
-        catch { return new BoolResult(false, "Couldn't load the file. Error on trying to open the file."); }
-
-        // try to load the encrypted file
-        var result = TrySetFileData(fs);
-        IsEncrypted = result.Result;
-
-        // escape the function if only the encrypted files are needed
-        if (encryptedFilesOnly) return result;
-
-        // try to load decrypted file
-        if (!IsEncrypted)
+        try
         {
+            // try to load the encrypted file
+            using var fs = File.OpenRead(filePath);
+            var result = TrySetFileData(fs);
+            IsEncrypted = result.Result;
+
+            // escape the function if only the encrypted files are needed
+            if (encryptedFilesOnly || IsEncrypted) return result;
+
+            // reset header and footer
             LimeHeader = new DsssLimeHeader();
             Footer = new DsssLimeFooter();
-            try { fs = File.OpenRead(filePath); }
-            catch { return new BoolResult(false, "Couldn't load the file. Error on trying to open the file."); }
-            try
-            {
-                SetFileSegments(fs);
-                result = new BoolResult(true);
-            }
-            catch { return new BoolResult(false, "Couldn't load the file. Error on trying to read the file."); }
-        }
 
-        return result;
+            // try to load decrypted file
+            using var fs2 = File.OpenRead(filePath);
+            SetFileSegments(fs2);
+            return new BoolResult(true);
+        }
+        catch { /* ignored */ }
+        return new BoolResult(false, "Couldn't load the file. Error on trying to open the file.");
     }
 
     /// <summary>
