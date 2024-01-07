@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 
 namespace LimebrellaSharp.Helpers;
 
@@ -24,8 +25,14 @@ public static class AppInfo
     public static string Copyright => GetCopyright();
 
     #endregion
-    
+
     #region METHODS
+
+    /// <summary>
+    /// Opens an author's GitHub page.
+    /// </summary>
+    public static void VisitAuthorsGithub()
+        => Process.Start(new ProcessStartInfo { FileName = "https://github.com/mi5hmash", UseShellExecute = true });
 
     /// <summary>
     /// Gets the attribute value of the assembly.

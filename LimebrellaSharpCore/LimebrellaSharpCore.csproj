@@ -2,12 +2,15 @@
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
+		<RootNamespace>LimebrellaSharp</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<AssemblyVersion>1.1.1.0</AssemblyVersion>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<AssemblyVersion>1.1.2.0</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<Version>$(AssemblyVersion)</Version>
 		<Authors>Mi5hmasH</Authors>
+		<Company>$(Authors)</Company>
 	</PropertyGroup>
 
 </Project>

@@ -63,9 +63,10 @@ namespace LimebrellaSharp.Properties {
         /// <summary>
         ///   Wyszukuje zlokalizowany zasób typu System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Limebrella_Sharp_Icon_x512 {
+        internal static System.Drawing.Bitmap Limebrella_Sharp_Icon_x256
+        {
             get {
-                object obj = ResourceManager.GetObject("Limebrella_Sharp_Icon_x512", resourceCulture);
+                object obj = ResourceManager.GetObject("Limebrella_Sharp_Icon_x256", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

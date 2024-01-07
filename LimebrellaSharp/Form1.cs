@@ -10,7 +10,7 @@ public partial class Form1 : Form
 {
     // Program Core
     private readonly Core _programCore;
-    
+
     public Form1()
     {
         var mediator = new SimpleMediatorWinForms();
@@ -137,6 +137,9 @@ public partial class Form1 : Form
     #endregion
 
     #region OPERATIONS
+
+    private void AuthorLabel_Click(object sender, EventArgs e)
+        => AppInfo.VisitAuthorsGithub();
 
     private void ButtonOpenOutputDir_Click(object sender, EventArgs e)
         => Core.OpenOutputDirectory();

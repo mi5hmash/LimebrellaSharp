@@ -3,47 +3,25 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0-windows7.0</TargetFramework>
+		<RootNamespace>LimebrellaSharp</RootNamespace>
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<ApplicationIcon>icon.ico</ApplicationIcon>
-		<AssemblyVersion>1.1.1.0</AssemblyVersion>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<AssemblyVersion>1.1.2.0</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<Version>$(AssemblyVersion)</Version>
 		<Authors>Mi5hmasH</Authors>
+		<Company>$(Authors)</Company>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <None Remove="Resources\Limebrella_Sharp_Icon_x512.png" />
-	  <None Remove="Resources\typewritter-machine.wav" />
-	</ItemGroup>
-
+	
 	<ItemGroup>
 		<Content Include="icon.ico" />
 	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Include="Resources\Limebrella_Sharp_Icon_x512.png" />
-	  <EmbeddedResource Include="Resources\typewritter-machine.wav" />
-	</ItemGroup>
-
+	
 	<ItemGroup>
 		<ProjectReference Include="..\LimebrellaSharpCore\LimebrellaSharpCore.csproj" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Update="Properties\Resources.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Resources.resx</DependentUpon>
-		</Compile>
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Update="Properties\Resources.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
-		</EmbeddedResource>
-	</ItemGroup>
-
+	
 </Project>

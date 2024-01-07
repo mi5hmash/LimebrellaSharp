@@ -120,7 +120,7 @@
             // 
             // pb_AppIcon
             // 
-            pb_AppIcon.Image = Properties.Resources.Limebrella_Sharp_Icon_x512;
+            pb_AppIcon.Image = Properties.Resources.Limebrella_Sharp_Icon_x256;
             pb_AppIcon.Location = new Point(386, 12);
             pb_AppIcon.Name = "pb_AppIcon";
             pb_AppIcon.Size = new Size(112, 117);
@@ -224,19 +224,22 @@
             versionLabel.Name = "versionLabel";
             versionLabel.Size = new Size(46, 15);
             versionLabel.TabIndex = 14;
-            versionLabel.Text = "v1.1.1.0";
+            versionLabel.Text = "v1.1.2.0";
             versionLabel.Click += VersionLabel_Click;
             versionLabel.DoubleClick += VersionLabel_Click;
             // 
             // authorLabel
             // 
             authorLabel.AutoSize = true;
+            authorLabel.Cursor = Cursors.Hand;
             authorLabel.Font = new Font("Segoe UI", 7F);
             authorLabel.Location = new Point(423, 145);
             authorLabel.Name = "authorLabel";
             authorLabel.Size = new Size(75, 12);
             authorLabel.TabIndex = 15;
             authorLabel.Text = "Mi5hmasH 2024";
+            authorLabel.TextAlign = ContentAlignment.MiddleRight;
+            authorLabel.Click += AuthorLabel_Click;
             // 
             // ButtonInterchange
             // 
