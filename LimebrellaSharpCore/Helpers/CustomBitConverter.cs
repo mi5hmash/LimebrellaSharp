@@ -31,7 +31,7 @@ public static class CustomBitConverter
         var arr = new byte[size];
 
         var ptr = Marshal.AllocHGlobal(size);
-        Marshal.StructureToPtr(obj!, ptr, false);
+        Marshal.StructureToPtr(obj, ptr, false);
         Marshal.Copy(ptr, arr, 0, size);
         Marshal.FreeHGlobal(ptr);
 
@@ -165,6 +165,7 @@ public static class CustomBitConverter
     /// <param name="int64"></param>
     /// <param name="isBigEndian"></param>
     /// <returns></returns>
-    public static string ToHexString(this ulong[] int64, bool isBigEndian = true) =>
-        string.Join(" ", int64.Select(chunk => chunk.ToHexString(isBigEndian)).ToList());
+    public static string ToHexString(this ulong[] int64, bool isBigEndian = true) 
+        => string.Join(" ", int64.Select(chunk => chunk.ToHexString(isBigEndian)).ToList());
+
 }

@@ -99,7 +99,7 @@
             ButtonUnpackAll.Location = new Point(12, 126);
             ButtonUnpackAll.Name = "ButtonUnpackAll";
             ButtonUnpackAll.Size = new Size(84, 23);
-            ButtonUnpackAll.TabIndex = 6;
+            ButtonUnpackAll.TabIndex = 7;
             ButtonUnpackAll.Text = "UNPACK ALL";
             ButtonUnpackAll.UseVisualStyleBackColor = true;
             ButtonUnpackAll.Visible = false;
@@ -112,7 +112,7 @@
             ButtonPackAll.Location = new Point(99, 126);
             ButtonPackAll.Name = "ButtonPackAll";
             ButtonPackAll.Size = new Size(84, 23);
-            ButtonPackAll.TabIndex = 7;
+            ButtonPackAll.TabIndex = 8;
             ButtonPackAll.Text = "PACK ALL";
             ButtonPackAll.UseVisualStyleBackColor = true;
             ButtonPackAll.Visible = false;
@@ -189,7 +189,7 @@
             ButtonResignAll.Location = new Point(254, 126);
             ButtonResignAll.Name = "ButtonResignAll";
             ButtonResignAll.Size = new Size(84, 23);
-            ButtonResignAll.TabIndex = 8;
+            ButtonResignAll.TabIndex = 9;
             ButtonResignAll.Text = "RESIGN ALL";
             ButtonResignAll.UseVisualStyleBackColor = true;
             ButtonResignAll.Click += ButtonResignAll_Click;
@@ -255,11 +255,13 @@
             // ButtonBruteforceSteamId
             // 
             ButtonBruteforceSteamId.Enabled = false;
-            ButtonBruteforceSteamId.Location = new Point(144, 61);
+            ButtonBruteforceSteamId.Font = new Font("Segoe UI", 8F);
+            ButtonBruteforceSteamId.ForeColor = Color.Goldenrod;
+            ButtonBruteforceSteamId.Location = new Point(143, 61);
             ButtonBruteforceSteamId.Name = "ButtonBruteforceSteamId";
-            ButtonBruteforceSteamId.Size = new Size(22, 23);
-            ButtonBruteforceSteamId.TabIndex = 999;
-            ButtonBruteforceSteamId.Text = "🔍";
+            ButtonBruteforceSteamId.Size = new Size(23, 23);
+            ButtonBruteforceSteamId.TabIndex = 6;
+            ButtonBruteforceSteamId.Text = "🗝️";
             toolTip1.SetToolTip(ButtonBruteforceSteamId, "Bruteforce SteamID");
             ButtonBruteforceSteamId.UseVisualStyleBackColor = true;
             ButtonBruteforceSteamId.Visible = false;
@@ -272,7 +274,7 @@
             ButtonOpenOutputDir.Location = new Point(343, 126);
             ButtonOpenOutputDir.Name = "ButtonOpenOutputDir";
             ButtonOpenOutputDir.Size = new Size(30, 23);
-            ButtonOpenOutputDir.TabIndex = 10;
+            ButtonOpenOutputDir.TabIndex = 11;
             ButtonOpenOutputDir.Text = "📂";
             toolTip1.SetToolTip(ButtonOpenOutputDir, "Open the _OUTPUT directory");
             ButtonOpenOutputDir.UseVisualStyleBackColor = true;
@@ -285,7 +287,7 @@
             ButtonAbort.Location = new Point(191, 126);
             ButtonAbort.Name = "ButtonAbort";
             ButtonAbort.Size = new Size(55, 23);
-            ButtonAbort.TabIndex = 9;
+            ButtonAbort.TabIndex = 10;
             ButtonAbort.Text = "ABORT";
             ButtonAbort.UseVisualStyleBackColor = true;
             ButtonAbort.Visible = false;

@@ -20,7 +20,7 @@ struct DSSS_NoneFooter {
 	u32 unknown_2 [[color("FF3333")]];
 	u32 unknown_3 [[color("FF3333")]];
 	u32 dataSlot [[color("33FF33")]];
-	u32 signature [[color("FF00AA")]];
+	u32 murmurHash3Signature [[color("FF00AA")]];
 };
 
 fn footer_address() {

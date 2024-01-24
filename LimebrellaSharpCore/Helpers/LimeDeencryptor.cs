@@ -1,7 +1,7 @@
-﻿using LimebrellaSharpCore.Models.DSSS.Lime;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using LimebrellaSharpCore.Models.DSSS.Lime;
 
 namespace LimebrellaSharpCore.Helpers;
 
@@ -149,7 +149,7 @@ public class LimeDeencryptor
         var cLengthB = QueueLength(containerB);
 
         Span<ulong> localContainer = stackalloc ulong[CLengthMax];
-        
+
         if (cLengthA > 0)
         {
             for (var y = 0; y < cLengthA; y++)

@@ -1,7 +1,7 @@
 using LimebrellaSharp.Helpers;
+using System.Media;
 using LimebrellaSharpCore;
 using LimebrellaSharpCore.Helpers;
-using System.Media;
 using static LimebrellaSharpCore.Helpers.SimpleLogger;
 
 namespace LimebrellaSharp;
@@ -37,6 +37,33 @@ public partial class Form1 : Form
         TBSteamIdOutput.Text = @"0";
     }
 
+    /// <summary>
+    /// Enumeration of all available Sounds.
+    /// </summary>
+    private enum SoundsEnum
+    {
+        None,
+        System,
+        Typewritter
+    }
+
+    private static void PlaySound(SoundsEnum sound)
+    {
+        switch (sound)
+        {
+            case SoundsEnum.System:
+                SystemSounds.Beep.Play();
+                break;
+            case SoundsEnum.Typewritter:
+                SoundPlayer sp = new(Properties.Resources.typewritter_machine);
+                sp.Play();
+                break;
+            case SoundsEnum.None:
+            default:
+                break;
+        }
+    }
+
     #region SUPER_USER
 
     // Super User
@@ -67,9 +94,12 @@ public partial class Form1 : Form
     private void EnableSuperUser()
     {
         _isSuperUser = true;
+        // things to unlock
         ButtonPackAll.Visible = true;
         ButtonUnpackAll.Visible = true;
-        SystemSounds.Beep.Play();
+        ButtonBruteforceSteamId.Visible = true;
+        // play sound
+        PlaySound(SoundsEnum.System);
     }
 
     #endregion
@@ -96,11 +126,17 @@ public partial class Form1 : Form
         TBSteamIdOutput.Text = _programCore.SteamIdOutput.ToString();
     }
 
+    private async void ButtonBruteforceSteamId_Click(object sender, EventArgs e)
+    {
+        await ProcessAsyncOperation(_programCore.BruteforceSteamIdAsync, SoundsEnum.System, true);
+        TBSteamIdInput.Text = _programCore.SteamIdInput.ToString();
+    }
+
     #endregion
 
     #region INPUT_PATH
 
-    private void ValidateFilepath(object sender)
+    private void ValidatePath(object sender)
     {
         if (sender is not TextBox textBox) return;
         _programCore.SetInputDirectory(textBox.Text);
@@ -109,7 +145,7 @@ public partial class Form1 : Form
     }
 
     private void TBFilepath_Leave(object sender, EventArgs e)
-        => ValidateFilepath(sender);
+        => ValidatePath(sender);
 
     private void TBFilepath_DragDrop(object sender, DragEventArgs e)
     {
@@ -120,7 +156,7 @@ public partial class Form1 : Form
         if ((File.GetAttributes(filePath) & FileAttributes.Directory) != FileAttributes.Directory)
             filePath = Path.GetDirectoryName(filePath);
         textBox.Text = filePath;
-        ValidateFilepath(textBox);
+        ValidatePath(textBox);
     }
 
     private void TBFilepath_DragOver(object sender, DragEventArgs e)
@@ -131,7 +167,7 @@ public partial class Form1 : Form
         if (_programCore.IsBusy) return;
         if (folderBrowserDialog1.ShowDialog() != DialogResult.OK) return;
         TBFilepath.Text = folderBrowserDialog1.SelectedPath;
-        ValidateFilepath(TBFilepath);
+        ValidatePath(TBFilepath);
     }
 
     #endregion
@@ -148,35 +184,28 @@ public partial class Form1 : Form
         => _programCore.AbortOperation();
 
     private delegate Task OperationDelegate();
-
-    private async Task ProcessAsyncOperation(OperationDelegate operationDelegate)
+    
+    private async Task ProcessAsyncOperation(OperationDelegate operationDelegate, SoundsEnum sound = SoundsEnum.None, bool isLongOperation = false)
     {
         if (_programCore.IsBusy) return;
 
-        ButtonAbort.Visible = true;
+        if (isLongOperation) ButtonAbort.Visible = true;
         await operationDelegate();
-        ButtonAbort.Visible = false;
+        if (isLongOperation) ButtonAbort.Visible = false;
 
         // play sound
-        SoundPlayer sp = new(Properties.Resources.typewritter_machine);
-        sp.Play();
+        PlaySound(sound);
     }
 
     private async void ButtonUnpackAll_Click(object sender, EventArgs e)
-        => await ProcessAsyncOperation(_programCore.UnpackAllAsync);
+        => await ProcessAsyncOperation(_programCore.UnpackAllAsync, SoundsEnum.Typewritter, true);
 
     private async void ButtonPackAll_Click(object sender, EventArgs e)
-        => await ProcessAsyncOperation(_programCore.PackAllAsync);
+        => await ProcessAsyncOperation(_programCore.PackAllAsync, SoundsEnum.Typewritter, true);
 
     private async void ButtonResignAll_Click(object sender, EventArgs e)
-        => await ProcessAsyncOperation(_programCore.ResignAllAsync);
-
-    private async void ButtonBruteforceSteamId_Click(object sender, EventArgs e)
-    {
-        await ProcessAsyncOperation(_programCore.BruteforceSteamIdAsync);
-        TBSteamIdInput.Text = _programCore.SteamIdInput.ToString();
-    }
-
+        => await ProcessAsyncOperation(_programCore.ResignAllAsync, SoundsEnum.Typewritter, true);
+    
     #endregion
 
 }

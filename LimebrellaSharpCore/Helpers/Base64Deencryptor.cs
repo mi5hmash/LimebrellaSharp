@@ -2,7 +2,7 @@
 
 namespace LimebrellaSharpCore.Helpers;
 
-public static class Base64Dencryptor
+public static class Base64Deencryptor
 {
     /// <summary>
     /// Converts a byte array into a Base64 string. 

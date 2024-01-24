@@ -41,7 +41,7 @@ struct LIME_Segment {
 struct DSSS_LimeFooter {
 	u8 salt[0x80] [[color("44FFFF")]];
 	u64 decryptedDataLength [[color("885500")]];
-	u32 signature [[color("FF00AA")]];
+	u32 murmurHash3Signature [[color("FF00AA")]];
 };
 
 fn segments_count() {

@@ -4,7 +4,7 @@ using static LimebrellaSharpCore.Helpers.LimeDeencryptor;
 
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
-public class DsssLimeFile
+public class DsssLimeFile(LimeDeencryptor deencryptor)
 {
     /// <summary>
     /// Header of the <see cref="DsssLimeFile"/>.
@@ -20,31 +20,16 @@ public class DsssLimeFile
     /// Footer of <see cref="DsssLimeFile"/>.
     /// </summary>
     public DsssLimeFooter Footer { get; set; } = new();
-    
-    /// <summary>
-    /// Hashes needed to calculate the file checksum.
-    /// </summary>
-    private static uint[] Hashes { get; set; } = [];
 
     /// <summary>
     /// Deencryptor instance.
     /// </summary>
-    public LimeDeencryptor Deencryptor { get; set; }
+    public LimeDeencryptor Deencryptor { get; } = deencryptor;
 
     /// <summary>
     /// Stores the encryption state of the current file.
     /// </summary>
     public bool IsEncrypted { get; private set; }
-
-    /// <summary>
-    /// Creates an empty <see cref="DsssLimeFile"/> class.
-    /// </summary>
-    /// /// <param name="deencryptor"></param>
-    public DsssLimeFile(LimeDeencryptor deencryptor)
-    {
-        Deencryptor = deencryptor;
-        Hashes = "OTMzNTg3MUI1MTJEOUVDQ0VDNTAyMjA1MzVBRUIyQzI2QkNBRUI4NQ==".Base64DecodeUtf8().ToUintArray();
-    }
 
     /// <summary>
     /// Loads a '*.bin' archive of <see cref="DsssLimeFile"/> type into the existing object.
@@ -218,39 +203,51 @@ public class DsssLimeFile
         => Deencryptor.LimepickSegment(Segments[segmentIndex], steamId);
 
     /// <summary>
-    /// This method signs a DSSS file.
+    /// Calculates MurmurHash3.
     /// </summary>
-    /// <param name="fileData"></param>
-    private static void SignFile(ref Span<uint> fileData)
+    /// <param name="data"></param>
+    /// <param name="seed"></param>
+    /// <returns></returns>
+    public static uint Murmur3_32(ReadOnlySpan<uint> data, uint seed = 0)
     {
-        var hash0 = 0xFFFFFFFF;
-        var length = fileData.Length - 1;
-        var lengthInBytes = length * 4;
+        const uint hash0 = 0x1B873593;
+        const uint hash1 = 0xCC9E2D51;
+        const uint hash2 = 0x052250EC;
+        const uint hash3 = 0xC2B2AE35;
+        const uint hash4 = 0x85EBCA6B;
 
-        for (var i = 0; i < length; i++)
-            hash0 = 5 * (uint.RotateLeft((Hashes[0] * uint.RotateLeft(Hashes[1] * fileData[i], 15)) ^ hash0, 13) - Hashes[2]);
+        var lengthInBytes = data.Length * 4;
+
+        foreach (var e in data)
+            seed = 5 * (uint.RotateLeft((hash0 * uint.RotateLeft(hash1 * e, 15)) ^ seed, 13) - hash2);
 
         uint mod0 = 0;
         switch (lengthInBytes & 3)
         {
-            case 1:
-                hash0 ^= Hashes[0] * uint.RotateLeft(Hashes[1] * (mod0 ^ fileData[0]), 15);
-                break;
             case 2:
-                mod0 ^= fileData[1] << 8;
-                hash0 ^= Hashes[0] * uint.RotateLeft(Hashes[1] * (mod0 ^ fileData[0]), 15);
-                break;
+                mod0 ^= data[1] << 8;
+                goto case 1;
             case 3:
-                mod0 = fileData[2] << 16;
-                mod0 ^= fileData[1] << 8;
-                hash0 ^= Hashes[0] * uint.RotateLeft(Hashes[1] * (mod0 ^ fileData[0]), 15);
+                mod0 = data[2] << 16;
+                goto case 2;
+            case 1:
+                seed ^= hash0 * uint.RotateLeft(hash1 * (mod0 ^ data[0]), 15);
                 break;
         }
-        var basis = (uint)(lengthInBytes ^ hash0);
+
+        var basis = (uint)(lengthInBytes ^ seed);
         var hiWordOfBasis = (basis >> 16) & 0xFFFF;
 
-        fileData[^1] = (Hashes[3] * ((Hashes[4] * (basis ^ hiWordOfBasis)) ^ ((Hashes[4] * (basis ^ hiWordOfBasis)) >> 13))) ^ ((Hashes[3] * ((Hashes[4] * (basis ^ hiWordOfBasis)) ^ ((Hashes[4] * (basis ^ hiWordOfBasis)) >> 13))) >> 16);
+        return (hash3 * ((hash4 * (basis ^ hiWordOfBasis)) ^ ((hash4 * (basis ^ hiWordOfBasis)) >> 13))) ^ ((hash3 * ((hash4 * (basis ^ hiWordOfBasis)) ^ ((hash4 * (basis ^ hiWordOfBasis)) >> 13))) >> 16);
     }
+
+    /// <summary>
+    /// This method signs a DSSS file.
+    /// Thanks to windwakr (https://github.com/windwakr) for identifying this hashing method as MurmurHash3_32.
+    /// </summary>
+    /// <param name="fileData"></param>
+    private static void SignFile(ref Span<uint> fileData)
+        => fileData[^1] = Murmur3_32(fileData[..^1], 0xFFFFFFFF);
 
     /// <summary>
     /// Returns false if file is not supported.

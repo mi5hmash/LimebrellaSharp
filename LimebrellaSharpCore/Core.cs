@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using LimebrellaSharpCore.Helpers;
+using LimebrellaSharpCore.Models;
 using LimebrellaSharpCore.Models.DSSS.Lime;
 using static LimebrellaSharpCore.Helpers.IoHelpers;
 using static LimebrellaSharpCore.Helpers.ISimpleMediator;
@@ -363,35 +364,37 @@ public class Core
             const uint batchSize = maxValue / batches;
 
             long start;
-            long end = 0; 
-            var resultText = "Bruteforce attempt has failed!";
-            // process batches
-            for (var i = 0; i < batches; i++)
+            long end = 0;
+            BoolResult boolResult = new(false, "Bruteforce attempt has failed!");
+            ProcessBatches();
+            ReportProgress(boolResult.Description, 100);
+            return;
+            
+            void ProcessBatches()
             {
-                ReportProgress($"[{i}%] Drilling...", i);
-                start = i * batchSize;
-                end = (i + 1) * batchSize - 1;
+                for (var i = 0; i < batches; i++)
+                {
+                    ReportProgress($"[{i}%] Drilling...", i);
+                    start = i * batchSize;
+                    end = (i + 1) * batchSize - 1;
+                    BruteforceBatch();
+                    if (boolResult.Result) return;
+                }
+                // modulo batch
+                start = end + 1;
+                end = maxValue;
                 BruteforceBatch();
             }
-            // modulo batch
-            start = end + 1;
-            end = maxValue;
-            BruteforceBatch();
-
-            ReportProgress(resultText, 100);
-            return;
 
             void BruteforceBatch()
             {
                 Parallel.For(start, end, po, (ctr, state) =>
                 {
                     // bruteforce
-                    if (dsssFile.BruteforceSegment((ulong)ctr))
-                    {
-                        resultText = "The Correct Steam ID has been found!";
-                        SteamIdInput = (uint)ctr;
-                        state.Break();
-                    }
+                    if (!dsssFile.BruteforceSegment((ulong)ctr)) return;
+                    boolResult.Set(true, "The Correct Steam ID has been found!");
+                    SteamIdInput = (uint)ctr;
+                    state.Break();
                 });
             }
         });
@@ -500,9 +503,9 @@ public class Core
         });
     }
 
-    private void UnpackAll(DsssLimeFile dsssFile)
+    private void UnpackAll(DsssLimeFile dsssFile) 
         => dsssFile.DecryptSegments(SteamIdInput);
-
+    
     private void PackAll(DsssLimeFile dsssFile)
         => dsssFile.EncryptSegments(SteamIdOutput);
 

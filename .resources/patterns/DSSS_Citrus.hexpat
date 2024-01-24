@@ -17,7 +17,7 @@ struct DSSS_FileHeader {
 
 struct DSSS_CitrusFooter {
 	u64 decryptedDataLength [[color("885500")]];
-	u32 signature [[color("FF00AA")]];
+	u32 murmurHash3Signature [[color("FF00AA")]];
 };
 
 fn footer_address() {
