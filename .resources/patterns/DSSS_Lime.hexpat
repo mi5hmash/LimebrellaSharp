@@ -8,7 +8,6 @@
 #define ENCRYPTION_ID			0x10
 #define ENCRYPTION_TYPE			"Lime"
 #define KEY_FRAGMENTS_PER_BANK	4
-#define BANK_SIZE				8
 
 struct DSSS_FileHeader {
 	char magic[std::string::length(DSSS_MAGIC)] [[color("33FF33")]];
@@ -27,13 +26,13 @@ struct LIME_PublicKeyFragment {
 	u64 _padding[3] [[color("555555")]];
 };
 
-struct LIME_PublicKeyFragmentBank {
+struct LIME_PublicKeyFragmentsBank {
 	LIME_PublicKeyHeader bankHeader;
 	LIME_PublicKeyFragment keyFragment;
 };
 
 struct LIME_Segment {
-	LIME_PublicKeyFragmentBank keyFragmentBank[KEY_FRAGMENTS_PER_BANK];
+	LIME_PublicKeyFragmentsBank keyFragmentsBank[KEY_FRAGMENTS_PER_BANK];
 	u8 segmentData[0x1000] [[color("FFFF33")]];
 	u64 segmentChecksum[4] [[color("FF8800")]];
 };

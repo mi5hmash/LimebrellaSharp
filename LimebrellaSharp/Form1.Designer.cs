@@ -254,7 +254,6 @@
             // 
             // ButtonBruteforceSteamId
             // 
-            ButtonBruteforceSteamId.Enabled = false;
             ButtonBruteforceSteamId.Font = new Font("Segoe UI", 8F);
             ButtonBruteforceSteamId.ForeColor = Color.Goldenrod;
             ButtonBruteforceSteamId.Location = new Point(143, 61);

@@ -5,11 +5,13 @@ namespace LimebrellaSharpCore.Models.DSSS.Lime;
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 0x8C)]
 public class DsssLimeFooter
 {
+    public const int SaltSize = 0x80;
+
     /// <summary>
     /// A length of a decrypted data in bytes.
     /// </summary>
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x80)]
-    public byte[] Salt = new byte[0x80];
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = SaltSize)]
+    public byte[] Salt = new byte[SaltSize];
 
     /// <summary>
     /// A length of a decrypted data in bytes.

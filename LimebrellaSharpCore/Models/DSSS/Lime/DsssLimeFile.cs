@@ -9,7 +9,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     /// <summary>
     /// Header of the <see cref="DsssLimeFile"/>.
     /// </summary>
-    public DsssLimeHeader LimeHeader { get; set; } = new();
+    public DsssLimeHeader Header { get; set; } = new();
 
     /// <summary>
     /// The segments of the <see cref="DsssLimeFile"/>.
@@ -45,21 +45,23 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
             using var fs = File.OpenRead(filePath);
             var result = TrySetFileData(fs);
             IsEncrypted = result.Result;
+            if (result.Result) return result;
 
             // escape the function if only the encrypted files are needed
-            if (encryptedFilesOnly || IsEncrypted) return result;
-
+            if (encryptedFilesOnly) return result;
+            
             // reset header and footer
-            LimeHeader = new DsssLimeHeader();
+            Header = new DsssLimeHeader();
             Footer = new DsssLimeFooter();
 
             // try to load decrypted file
             using var fs2 = File.OpenRead(filePath);
             SetFileSegments(fs2);
+            IsEncrypted = false;
             return new BoolResult(true);
         }
         catch { /* ignored */ }
-        return new BoolResult(false, "Couldn't load the file. Error on trying to open the file.");
+        return new BoolResult(false, "Error on trying to open the file.");
     }
 
     /// <summary>
@@ -72,13 +74,13 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
         using BinReader br = new(fs);
         try
         {
-            // try to load header data into the LimeHeader
-            LimeHeader = br.ReadStruct<DsssLimeHeader>() ?? throw new NullReferenceException();
+            // try to load header data into the Header
+            Header = br.ReadStruct<DsssLimeHeader>() ?? throw new NullReferenceException();
         }
-        catch { return new BoolResult(false, "Couldn't load the file. Invalid file header structure."); }
+        catch { return new BoolResult(false, "Invalid file header structure."); }
 
-        var test = LimeHeader.CheckIntegrity();
-        if (!test.Result) return new BoolResult(test.Result, $"Couldn't load the file. {test.Description}");
+        var test = Header.CheckIntegrity();
+        if (!test.Result) return test;
 
         var segmentsLength = fs.Length - (Marshal.SizeOf<DsssLimeHeader>() + Marshal.SizeOf<DsssLimeFooter>());
         var segmentsCount = segmentsLength / Marshal.SizeOf<DsssLimeDataSegment>();
@@ -92,7 +94,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
             {
                 segment = br.ReadStruct<DsssLimeDataSegment>() ?? throw new NullReferenceException();
             }
-            catch { return new BoolResult(false, $"Couldn't load the file. Invalid DsssLimeDataSegment({i}) structure."); }
+            catch { return new BoolResult(false, $"Invalid DsssLimeDataSegment({i}) structure."); }
             Segments[i] = segment;
         }
 
@@ -101,7 +103,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
             // try to load footer data into the Footer
             Footer = br.ReadStruct<DsssLimeFooter>() ?? throw new NullReferenceException();
         }
-        catch { return new BoolResult(false, "Couldn't load the file. Invalid file footer structure."); }
+        catch { return new BoolResult(false, "Invalid file footer structure."); }
 
         return new BoolResult(true);
     }
@@ -112,7 +114,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     /// <param name="fs"></param>
     private void SetFileSegments(Stream fs)
     {
-        var numberOfSegments = (int)Math.Ceiling((double)fs.Length / 0x1000);
+        var numberOfSegments = (int)Math.Ceiling((double)fs.Length / DsssLimeDataSegment.SegmentDataSize);
         Segments = new DsssLimeDataSegment[numberOfSegments];
 
         for (var i = 0; i < numberOfSegments; i++)
@@ -141,14 +143,14 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
         using MemoryStream ms = new();
         using BinWriter bw = new(ms);
         // write DSSS HEADER content
-        bw.WriteStruct(LimeHeader);
+        bw.WriteStruct(Header);
         // write DSSS SEGMENTS content
         foreach (var segment in Segments) bw.WriteStruct(segment);
         // write DSSS FOOTER content
         bw.WriteStruct(Footer);
 
         var dataAsBytes = ms.ToArray().AsSpan();
-        var dataAsInts = MemoryMarshal.Cast<byte, uint>(dataAsBytes[..(dataAsBytes.Length / sizeof(uint) * sizeof(uint))]);
+        var dataAsInts = MemoryMarshal.Cast<byte, uint>(dataAsBytes);
 
         // sign file
         SignFile(ref dataAsInts);
@@ -194,7 +196,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     }
 
     /// <summary>
-    /// Buteforces the nth segment of <see cref="Segments"/>.
+    /// Bruteforces the nth segment of <see cref="Segments"/>.
     /// </summary>
     /// <param name="steamId"></param>
     /// <param name="segmentIndex"></param>
@@ -250,12 +252,34 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
         => fileData[^1] = Murmur3_32(fileData[..^1], 0xFFFFFFFF);
 
     /// <summary>
+    /// Tests if any of the known KnownSteamIDs works.
+    /// </summary>
+    /// <param name="steamId"></param>
+    /// <returns></returns>
+    public bool TestKnownSteamIDs(ref uint steamId)
+    {
+        var result = BruteforceSegment(steamId);
+        if (result) return true;
+        uint[] knownSteamIds = [411651526, 0];
+        foreach (var sid in knownSteamIds)
+        {
+            result = BruteforceSegment(sid);
+            if (!result) continue;
+            steamId = sid;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Returns false if file is not supported.
     /// </summary>
     /// <returns></returns>
-    public BoolResult CheckCompatibility(ulong steamId)
+    public BoolResult CheckCompatibility(ref uint steamId)
     {
         if (!IsEncrypted) return new BoolResult(true);
-        return !BruteforceSegment(steamId) ? new BoolResult(false, $"File was not encrypted with provided SteamID ({steamId}) and is not compatible.") : new BoolResult(true);
+        // Test all known steamIDs
+        var result = TestKnownSteamIDs(ref steamId);
+        return !result ? new BoolResult(false, $"File was not encrypted with provided SteamID ({steamId}) and is not compatible.") : new BoolResult(true); 
     }
 }

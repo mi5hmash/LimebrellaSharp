@@ -5,23 +5,27 @@ namespace LimebrellaSharpCore.Models.DSSS.Lime;
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 0x1220)]
 public class DsssLimeDataSegment
 {
+    public const int SegmentDataSize = 0x1000;
+    public const int SegmentChecksumSize = 4;
+    public const int HashedKeyBanksSize = 4;
+
     /// <summary>
-    /// Banks containing parts of a hashed public key, as of version 1 there are 4 of them. 
+    /// Banks containing parts of a hashed public key. 
     /// </summary>
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-    public DsssLimeHashedKeyBank[] HashedKeyBanks = new DsssLimeHashedKeyBank[4];
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = HashedKeyBanksSize)]
+    public DsssLimeHashedKeyBank[] HashedKeyBanks = new DsssLimeHashedKeyBank[HashedKeyBanksSize];
     
     /// <summary>
     /// Raw encrypted data stored in this segment. The size is one page (4096 bytes). 
     /// </summary>
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x1000)]
-    public byte[] SegmentData = new byte[0x1000];
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = SegmentDataSize)]
+    public byte[] SegmentData = new byte[SegmentDataSize];
 
     /// <summary>
     /// Checksum of this segment.
     /// </summary>
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-    public ulong[] SegmentChecksum = new ulong[4];
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = SegmentChecksumSize)]
+    public ulong[] SegmentChecksum = new ulong[SegmentChecksumSize];
 
     /// <summary>
     /// Create a parameter-less <see cref="DsssLimeDataSegment"/>.
@@ -43,11 +47,11 @@ public class DsssLimeDataSegment
     /// <param name="segmentChecksum"></param>
     public void SetSegmentChecksum(ulong[] segmentChecksum)
     {
-        for (var i = 0; i < SegmentChecksum.Length; i++) SegmentChecksum[i] = segmentChecksum[i];
+        for (var i = 0; i < SegmentChecksumSize; i++) SegmentChecksum[i] = segmentChecksum[i];
     }
     public void SetSegmentChecksum(ReadOnlySpan<ulong> segmentChecksum)
     {
-        segmentChecksum[..4].CopyTo(SegmentChecksum);
+        segmentChecksum[..SegmentChecksumSize].CopyTo(SegmentChecksum);
     }
 
     /// <summary>
@@ -58,6 +62,6 @@ public class DsssLimeDataSegment
     public bool ValidateSegmentChecksum(ReadOnlySpan<ulong> segmentChecksum)
     {
         ReadOnlySpan<ulong> data = SegmentChecksum;
-        return data.SequenceEqual(segmentChecksum[..SegmentChecksum.Length]);
+        return data.SequenceEqual(segmentChecksum[..SegmentChecksumSize]);
     }
 }

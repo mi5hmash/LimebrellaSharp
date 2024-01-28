@@ -273,7 +273,7 @@ public class LimeDeencryptor
         {
             limeBank[i].Header.CopyTo(localContainerA);
             Limegator(localContainerA, cSteamId, cKey1);
-            limeBank[i].HashedKey.CopyTo(localContainerB);
+            limeBank[i].KeyFragment.CopyTo(localContainerB);
             Limeghetti(ref localContainerB, localContainerA);
             // put the calculated part of the key in the segmentHashedKey
             segmentHashedKey[i] = localContainerB[0];
@@ -450,7 +450,7 @@ public class LimeDeencryptor
 
     // Execute...
     ORDER_66:
-        // set all the containerA ulongs to 0
+        // set all the containerA elements to 0
         containerA.Clear();
     }
 
@@ -650,7 +650,7 @@ public class LimeDeencryptor
         Span<ulong> cLimeSeed = stackalloc ulong[CLengthMax];
         Span<ulong> cHashedKeyPart = stackalloc ulong[CLengthMax];
         Span<ulong> cRandomizer = stackalloc ulong[CLengthMax];
-        var cRandomizerAsBytes = MemoryMarshal.Cast<ulong, byte>(cRandomizer[..(cRandomizer.Length / sizeof(byte) * sizeof(byte))]);
+        var cRandomizerAsBytes = MemoryMarshal.Cast<ulong, byte>(cRandomizer);
         if (mode == Mode.Encrypt)
         {
             // load key type into container
@@ -669,7 +669,7 @@ public class LimeDeencryptor
         for (var i = 0; i < segments.Length; i++)
         {
             Span<byte> dataAsBytes = segments[i].SegmentData;
-            var dataAsUlongs = MemoryMarshal.Cast<byte, ulong>(dataAsBytes[..(dataAsBytes.Length / sizeof(ulong) * sizeof(ulong))]);
+            var dataAsUlongs = MemoryMarshal.Cast<byte, ulong>(dataAsBytes);
             
             if (mode == Mode.Encrypt)
             {
@@ -681,7 +681,7 @@ public class LimeDeencryptor
                     EncryptionFirst(ref cHashedKeyPart, cRandomizer);
                     // update header and hashed key
                     segments[i].HashedKeyBanks[j].Header = cHeader[..segments[i].HashedKeyBanks[j].Header.Length].ToArray();
-                    segments[i].HashedKeyBanks[j].HashedKey = cHashedKeyPart[..segments[i].HashedKeyBanks[j].HashedKey.Length].ToArray();
+                    segments[i].HashedKeyBanks[j].KeyFragment = cHashedKeyPart[..segments[i].HashedKeyBanks[j].KeyFragment.Length].ToArray();
                 }
 
                 // calculate and set a checksum of current segment
@@ -695,11 +695,11 @@ public class LimeDeencryptor
 
             // create round keys from public keys
             aesRoundKeys.Clear();
-            var cHashPublicKeysResultAsVector128Span = MemoryMarshal.Cast<ulong, Vector128<byte>>(cHashPublicKeysResult[..(cHashPublicKeysResult.Length / Vector128<byte>.Count * Vector128<byte>.Count)]);
+            var cHashPublicKeysResultAsVector128Span = MemoryMarshal.Cast<ulong, Vector128<byte>>(cHashPublicKeysResult);
             AesKeygen(ref aesRoundKeys, cHashPublicKeysResultAsVector128Span);
 
             // deencrypt SegmentData
-            var dataAsVectors128 = MemoryMarshal.Cast<byte, Vector128<byte>>(dataAsBytes[..(dataAsBytes.Length / Vector128<byte>.Count * Vector128<byte>.Count)]);
+            var dataAsVectors128 = MemoryMarshal.Cast<byte, Vector128<byte>>(dataAsBytes);
             Deencrypt(dataAsVectors128, aesRoundKeys);
 
             // compare a newly calculated checksum with the old one on the first segment and break loop if not equal
@@ -737,14 +737,14 @@ public class LimeDeencryptor
         // hash public keys
         HashPublicKeys(ref cHashPublicKeysResult, cKey1, cSteamId, limeSegment.HashedKeyBanks);
         // create round keys from public keys
-        var cHashPublicKeysResultAsVector128Span = MemoryMarshal.Cast<ulong, Vector128<byte>>(cHashPublicKeysResult[..(cHashPublicKeysResult.Length / Vector128<byte>.Count * Vector128<byte>.Count)]);
+        var cHashPublicKeysResultAsVector128Span = MemoryMarshal.Cast<ulong, Vector128<byte>>(cHashPublicKeysResult);
         AesKeygen(ref aesRoundKeys, cHashPublicKeysResultAsVector128Span);
         // deencrypt SegmentData
-        var dataAsVectors128 = MemoryMarshal.Cast<byte, Vector128<byte>>(dataAsBytes[..(dataAsBytes.Length / Vector128<byte>.Count * Vector128<byte>.Count)]);
+        var dataAsVectors128 = MemoryMarshal.Cast<byte, Vector128<byte>>(dataAsBytes);
         Deencrypt(dataAsVectors128, aesRoundKeys);
 
         Span<ulong> checksumContainer = stackalloc ulong[ChecksumContainerLength];
-        var dataAsUlongs = MemoryMarshal.Cast<byte, ulong>(dataAsBytes[..(dataAsBytes.Length / sizeof(ulong) * sizeof(ulong))]);
+        var dataAsUlongs = MemoryMarshal.Cast<byte, ulong>(dataAsBytes);
         LimeChecksum(ref checksumContainer, dataAsUlongs);
         
         return limeSegment.ValidateSegmentChecksum(checksumContainer);

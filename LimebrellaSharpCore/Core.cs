@@ -15,7 +15,7 @@ public class Core
 
     public static string RootPath => AppDomain.CurrentDomain.BaseDirectory;
 
-    private static string OutputFolder => "_OUTPUT";
+    private const string OutputFolder = "_OUTPUT";
     public static string OutputPath => Path.Combine(RootPath, OutputFolder);
     
     private static string PathPattern => @$"\{Path.DirectorySeparatorChar}(\d+)\{Path.DirectorySeparatorChar}(\d+)\{Path.DirectorySeparatorChar}remote\{Path.DirectorySeparatorChar}win64_save\{Path.DirectorySeparatorChar}?$";
@@ -427,12 +427,13 @@ public class Core
                 var result = dsssFile.SetFileData(files[ctr]);
                 if (!result.Result)
                 {
-                    _logger.Log(LogSeverity.Error, $"I_{ctr} -> {result.Description}");
+                    _logger.Log(LogSeverity.Error, $"I_{ctr} -> Couldn't load the file. {result.Description}");
                     goto ORDER_66;
                 }
 
                 // check file compatibility
-                result = dsssFile.CheckCompatibility(SteamIdInput);
+                var localSteamIdInput = SteamIdInput;
+                result = dsssFile.CheckCompatibility(ref localSteamIdInput);
                 if (!result.Result)
                 {
                     _logger.Log(LogSeverity.Error, $"I_{ctr} -> {result.Description}");
@@ -466,7 +467,18 @@ public class Core
                 }
 
                 // run operation
-                operationDelegate(dsssFile);
+                if (localSteamIdInput == SteamIdInput)
+                {
+                    operationDelegate(dsssFile);
+                }
+                else
+                {
+                    // temporarily swap SteamIdInput with the known SteamIdInput if it fits the currently processed file
+                    var reminder = SteamIdInput;
+                    SteamIdInput = localSteamIdInput;
+                    operationDelegate(dsssFile);
+                    SteamIdInput = reminder;
+                }
 
                 // save file
                 var filePath = Path.Combine(OutputPath, Path.GetFileName(files[ctr]));

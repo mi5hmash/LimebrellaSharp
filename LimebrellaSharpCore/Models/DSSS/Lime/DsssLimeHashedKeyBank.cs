@@ -5,26 +5,26 @@ namespace LimebrellaSharpCore.Models.DSSS.Lime;
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 0x80)]
 public struct DsssLimeHashedKeyBank
 {
+    public const int HeaderSize = 8;
+    public const int KeyFragmentSize = 8;
+
     /// <summary>
     /// KeyBank header made of 8 ulong segments, but as of version 1 only the first 4 segments are occupied.
     /// </summary>
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
-    public ulong[] Header = new ulong[8];
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = HeaderSize)]
+    public ulong[] Header = new ulong[HeaderSize];
 
     /// <summary>
-    /// HashedKey
+    /// Key Fragment.
     /// Key made of 8 ulong segments, but as of version 1 only the first 5 segments are occupied.
     /// </summary>
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
-    public ulong[] HashedKey = new ulong[8];
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = KeyFragmentSize)]
+    public ulong[] KeyFragment = new ulong[KeyFragmentSize];
 
     /// <summary>
     /// Create a parameter-less <see cref="DsssLimeHashedKeyBank"/>.
     /// </summary>
-    public DsssLimeHashedKeyBank()
-    {
-        Init();
-    }
+    public DsssLimeHashedKeyBank() => Init();
 
     /// <summary>
     /// Initialize struct. 
@@ -38,16 +38,7 @@ public struct DsssLimeHashedKeyBank
     /// <summary>
     /// Returns a default <see cref="Header"/> value.
     /// </summary>
-    /// <returns></returns>
-    public void SetDefaultHeader() => Header = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0, 0x0
-    ];
-
-    /// <summary>
-    /// Returns a default <see cref="HashedKey"/> value.
-    /// </summary>
-    /// <returns></returns>
-    public void SetDefaultKey() => HashedKey = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0
-    ];
+    public void SetDefaultHeader() => Header = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0, 0x0];
 
     /// <summary>
     /// Sets random <see cref="Header"/>.
@@ -55,7 +46,12 @@ public struct DsssLimeHashedKeyBank
     public readonly void SetRandomHeader() => SetHeader(RandomUlongArray(4));
 
     /// <summary>
-    /// Sets random <see cref="HashedKey"/>.
+    /// Returns a default <see cref="KeyFragment"/> value.
+    /// </summary>
+    public void SetDefaultKey() => KeyFragment = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0];
+
+    /// <summary>
+    /// Sets random <see cref="KeyFragment"/>.
     /// </summary>
     public readonly void SetRandomKey() => SetKey(RandomUlongArray(5));
 
@@ -71,14 +67,14 @@ public struct DsssLimeHashedKeyBank
     }
 
     /// <summary>
-    /// Sets <see cref="HashedKey"/>.
+    /// Sets <see cref="KeyFragment"/>.
     /// </summary>
     /// <param name="key"></param>
     public readonly void SetKey(Span<ulong> key)
     {
-        Span<ulong> spanHashedKey = HashedKey;
-        spanHashedKey.Clear();
-        key.CopyTo(spanHashedKey);
+        Span<ulong> spanKeyFragment = KeyFragment;
+        spanKeyFragment.Clear();
+        key.CopyTo(spanKeyFragment);
     }
     
     /// <summary>
