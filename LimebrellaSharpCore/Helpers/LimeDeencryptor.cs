@@ -143,10 +143,10 @@ public class LimeDeencryptor
     /// <param name="containerB"></param>
     private static void EncryptionFirst(ref Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
-        if (QueueLength(containerA) == 0 || QueueLength(containerB) == 0) return;
-
         var cLengthA = QueueLength(containerA);
+        if (cLengthA == 0) return;
         var cLengthB = QueueLength(containerB);
+        if (cLengthB == 0) return;
 
         Span<ulong> localContainer = stackalloc ulong[CLengthMax];
 
@@ -366,7 +366,7 @@ public class LimeDeencryptor
             }
         }
 
-        // calculate how many ints are in a localContainerB
+        // calculate how many elements are in a localContainerB
         var tinyHashesToCalculate = (cLengthA - cLengthB) * 2;
 
         var bits = 32 - ((RootDegree(containerB[cLengthB - 1], 1) + ((cLengthB - 1) << 6)) & 31);
@@ -453,14 +453,14 @@ public class LimeDeencryptor
         // set all the containerA elements to 0
         containerA.Clear();
     }
-
+    
     /// <summary>
     /// Watch out for its sharp teeth!
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
     /// <param name="containerC"></param>
-    /// <returns>Modifies <paramref name="containerA"/></returns>
+    /// <returns>Modified <paramref name="containerA"/></returns>
     private void Limegator(Span<ulong> containerA, ReadOnlySpan<ulong> containerB, ReadOnlySpan<ulong> containerC)
     {
         Span<ulong> localContainerA = stackalloc ulong[CLengthMax];
@@ -517,13 +517,13 @@ public class LimeDeencryptor
             return true;
         }
     }
-
+    
     /// <summary>
     /// Decrypts or encrypts <paramref name="inputDataAsVectors"/>. 
     /// </summary>
     /// <param name="inputDataAsVectors"></param>
     /// <param name="roundKeys"></param>
-    /// <returns>Modifies <paramref name="inputDataAsVectors"/></returns>
+    /// <returns>Modified <paramref name="inputDataAsVectors"/></returns>
     private static void Deencrypt(Span<Vector128<byte>> inputDataAsVectors, ReadOnlySpan<Vector128<byte>> roundKeys)
     {
         var key = roundKeys[^1];

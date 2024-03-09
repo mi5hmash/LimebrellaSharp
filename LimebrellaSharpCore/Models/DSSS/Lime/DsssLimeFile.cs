@@ -72,6 +72,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     private BoolResult TrySetFileData(Stream fs)
     {
         using BinReader br = new(fs);
+        // HEADER
         try
         {
             // try to load header data into the Header
@@ -79,9 +80,11 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
         }
         catch { return new BoolResult(false, "Invalid file header structure."); }
 
+        // check Header integrity
         var test = Header.CheckIntegrity();
         if (!test.Result) return test;
 
+        // SEGMENTS
         var segmentsLength = fs.Length - (Marshal.SizeOf<DsssLimeHeader>() + Marshal.SizeOf<DsssLimeFooter>());
         var segmentsCount = segmentsLength / Marshal.SizeOf<DsssLimeDataSegment>();
 
@@ -98,6 +101,11 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
             Segments[i] = segment;
         }
 
+        // check the integrity of the first Segment
+        test = Segments.First().CheckIntegrity();
+        if (!test.Result) return test;
+
+        // FOOTER
         try
         {
             // try to load footer data into the Footer

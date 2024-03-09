@@ -64,4 +64,14 @@ public class DsssLimeDataSegment
         ReadOnlySpan<ulong> data = SegmentChecksum;
         return data.SequenceEqual(segmentChecksum[..SegmentChecksumSize]);
     }
+
+    /// <summary>
+    /// Returns false if the encryption version is newer than 1.
+    /// </summary>
+    /// <returns></returns>
+    public BoolResult CheckIntegrity()
+    {
+        return HashedKeyBanks.First().Header.SequenceEqual<ulong>([0x5B49D502_17C839BB, 0x772BEEF5_D2441867, 0x6E236B07_6EEB11B8, 0x1216F542_E37CEE41, 0, 0, 0, 0]) 
+            ? new BoolResult(true) : new BoolResult(false, "Invalid file encryption version (greater than 1)!");
+    }
 }

@@ -97,7 +97,6 @@ public partial class Form1 : Form
         // things to unlock
         ButtonPackAll.Visible = true;
         ButtonUnpackAll.Visible = true;
-        ButtonBruteforceSteamId.Visible = true;
         // play sound
         PlaySound(SoundsEnum.System);
     }

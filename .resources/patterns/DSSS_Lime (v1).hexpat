@@ -6,7 +6,7 @@
 
 #define DSSS_MAGIC				"DSSS"
 #define ENCRYPTION_ID			0x10
-#define ENCRYPTION_TYPE			"Lime"
+#define ENCRYPTION_TYPE			"Lime (v1)"
 #define KEY_FRAGMENTS_PER_BANK	4
 
 struct DSSS_FileHeader {
@@ -58,6 +58,12 @@ DSSS_LimeCtx DSSS @ 0x0;
 // Assert file
 std::assert(DSSS.FileHeader.magic == DSSS_MAGIC, "File is not a valid DSSS file!");
 std::assert(DSSS.FileHeader.encryptionType == ENCRYPTION_ID, "DSSS file is not encrypted with " + ENCRYPTION_TYPE + " encryption!");
+// Check Encryption Version
+#define ENCRYPTION_VERSION_ERROR_MESSAGE "Encryption version seems to be greater than 1."
+std::assert(DSSS.LimeSegment[0].keyFragmentsBank[0].bankHeader.header[0] == 0x5B49D50217C839BB, ENCRYPTION_VERSION_ERROR_MESSAGE);
+std::assert(DSSS.LimeSegment[0].keyFragmentsBank[0].bankHeader.header[1] == 0x772BEEF5D2441867, ENCRYPTION_VERSION_ERROR_MESSAGE);
+std::assert(DSSS.LimeSegment[0].keyFragmentsBank[0].bankHeader.header[2] == 0x6E236B076EEB11B8, ENCRYPTION_VERSION_ERROR_MESSAGE);
+std::assert(DSSS.LimeSegment[0].keyFragmentsBank[0].bankHeader.header[3] == 0x1216F542E37CEE41, ENCRYPTION_VERSION_ERROR_MESSAGE);
 
 // Output
 std::print("File Encryption: {};", ENCRYPTION_TYPE);

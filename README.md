@@ -4,7 +4,7 @@
 [![dotNET7](https://img.shields.io/badge/.NET%208-blueviolet)](https://visualstudio.microsoft.com/)
 
 # 🍋☂️ LimebrellaSharp - What is it :interrobang:
-This app can **unpack and pack the "Lime" encrypted archives**. It can also **resign files** with your own SteamID to **use any SaveData on your profile**.
+This app can **unpack and pack archives encrypted with the 1st version of the "Lime" encryption**. It can also **resign files** with your own SteamID to **use any SaveData on your profile**.
 
 ## Supported titles*
 | Game Title                | App ID  | Tested Version | Platform |

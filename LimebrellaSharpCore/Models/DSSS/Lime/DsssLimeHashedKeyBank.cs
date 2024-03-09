@@ -12,44 +12,25 @@ public struct DsssLimeHashedKeyBank
     /// KeyBank header made of 8 ulong segments, but as of version 1 only the first 4 segments are occupied.
     /// </summary>
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = HeaderSize)]
-    public ulong[] Header = new ulong[HeaderSize];
+    public ulong[] Header = [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
 
     /// <summary>
     /// Key Fragment.
     /// Key made of 8 ulong segments, but as of version 1 only the first 5 segments are occupied.
     /// </summary>
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = KeyFragmentSize)]
-    public ulong[] KeyFragment = new ulong[KeyFragmentSize];
+    public ulong[] KeyFragment = [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
 
     /// <summary>
     /// Create a parameter-less <see cref="DsssLimeHashedKeyBank"/>.
     /// </summary>
-    public DsssLimeHashedKeyBank() => Init();
-
-    /// <summary>
-    /// Initialize struct. 
-    /// </summary>
-    public void Init()
-    {
-        SetDefaultHeader();
-        SetDefaultKey();
-    }
-
-    /// <summary>
-    /// Returns a default <see cref="Header"/> value.
-    /// </summary>
-    public void SetDefaultHeader() => Header = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0, 0x0];
-
+    public DsssLimeHashedKeyBank() { }
+    
     /// <summary>
     /// Sets random <see cref="Header"/>.
     /// </summary>
     public readonly void SetRandomHeader() => SetHeader(RandomUlongArray(4));
-
-    /// <summary>
-    /// Returns a default <see cref="KeyFragment"/> value.
-    /// </summary>
-    public void SetDefaultKey() => KeyFragment = [0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x1111_1111_1111_1111, 0x0, 0x0, 0x0];
-
+    
     /// <summary>
     /// Sets random <see cref="KeyFragment"/>.
     /// </summary>

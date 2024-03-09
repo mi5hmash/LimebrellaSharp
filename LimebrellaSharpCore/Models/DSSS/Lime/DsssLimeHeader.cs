@@ -24,7 +24,7 @@ public class DsssLimeHeader
     /// <summary>
     /// Don't know what's there.
     /// </summary>
-    public uint Unknown2 { get; set; } = 0U;
+    public uint Unknown2 { get; set; }
 
     /// <summary>
     /// Create a parameter-less <see cref="DsssLimeHeader"/>.
