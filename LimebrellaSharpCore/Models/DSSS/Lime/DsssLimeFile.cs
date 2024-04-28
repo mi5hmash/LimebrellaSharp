@@ -143,7 +143,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     /// Gets an existing object of a <see cref="DsssLimeFile"/> type as byte array.
     /// </summary>
     /// <returns></returns>
-    public Span<byte> GetFileData()
+    public ReadOnlySpan<byte> GetFileData()
     {
         // randomize footer salt
         Footer.GenerateSalt();
@@ -171,12 +171,12 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     /// Gets all <see cref="Segments"/> of an existing object of a DsssLime type as Span&lt;byte&gt;.
     /// </summary>
     /// <returns></returns>
-    public Span<byte> GetFileSegments()
+    public ReadOnlySpan<byte> GetFileSegments()
     {
         using MemoryStream ms = new();
         foreach (var segment in Segments) ms.Write(segment.SegmentData);
         ms.SetLength(Footer.DecryptedDataLength);
-        return ms.ToArray().AsSpan();
+        return ms.ToArray();
     }
 
     /// <summary>

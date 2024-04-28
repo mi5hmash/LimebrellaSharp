@@ -55,8 +55,10 @@
             folderBrowserDialog1 = new FolderBrowserDialog();
             ButtonAbort = new Button();
             superUserTimer = new System.Windows.Forms.Timer(components);
+            superUserTrigger = new PictureBox();
             ((System.ComponentModel.ISupportInitialize)pb_AppIcon).BeginInit();
             statusStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)superUserTrigger).BeginInit();
             SuspendLayout();
             // 
             // TBSteamIdInput
@@ -224,9 +226,7 @@
             versionLabel.Name = "versionLabel";
             versionLabel.Size = new Size(46, 15);
             versionLabel.TabIndex = 14;
-            versionLabel.Text = "v1.1.2.0";
-            versionLabel.Click += VersionLabel_Click;
-            versionLabel.DoubleClick += VersionLabel_Click;
+            versionLabel.Text = "v1.2.1.0";
             // 
             // authorLabel
             // 
@@ -297,11 +297,23 @@
             superUserTimer.Interval = 500;
             superUserTimer.Tick += SuperUserTimer_Tick;
             // 
+            // superUserTrigger
+            // 
+            superUserTrigger.BackColor = Color.Transparent;
+            superUserTrigger.Location = new Point(386, 130);
+            superUserTrigger.Name = "superUserTrigger";
+            superUserTrigger.Size = new Size(10, 10);
+            superUserTrigger.TabIndex = 16;
+            superUserTrigger.TabStop = false;
+            superUserTrigger.Click += SuperUserTrigger_Click;
+            superUserTrigger.DoubleClick += SuperUserTrigger_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(510, 185);
+            Controls.Add(superUserTrigger);
             Controls.Add(ButtonAbort);
             Controls.Add(ButtonOpenOutputDir);
             Controls.Add(ButtonBruteforceSteamId);
@@ -331,6 +343,7 @@
             ((System.ComponentModel.ISupportInitialize)pb_AppIcon).EndInit();
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)superUserTrigger).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -362,5 +375,6 @@
         private Button ButtonBruteforceSteamId;
         private Button ButtonOpenOutputDir;
         private System.Windows.Forms.Timer superUserTimer;
+        private PictureBox superUserTrigger;
     }
 }

@@ -9,6 +9,21 @@ namespace LimebrellaSharpCore.Helpers;
 public class SimpleLoggerOptions(string logsRootDirectory)
 {
     /// <summary>
+    /// Determines if logger logs debug messages.
+    /// </summary>
+    public bool AllowDebugMessages { get; set; }
+
+    /// <summary>
+    /// A prefix used in log file naming.
+    /// </summary>
+    public string LogFileNamePrefix { get; set; } = "log";
+
+    /// <summary>
+    /// Stores the name of the logged app.
+    /// </summary>
+    public string LoggedAppName { get; set; } = "Program";
+
+    /// <summary>
     /// A path where the log files should be stored.
     /// </summary>
     public string LogsRootDirectory { get; set; } = logsRootDirectory;
@@ -19,19 +34,9 @@ public class SimpleLoggerOptions(string logsRootDirectory)
     public int MaxLogFiles { get; set; } = 3;
 
     /// <summary>
-    /// A prefix used in log file naming.
-    /// </summary>
-    public string LogFileNamePrefix { get; set; } = "log";
-
-    /// <summary>
     /// Minimum severity level of the messages to include in the log.
     /// </summary>
     public SimpleLogger.LogSeverity MinSeverityLevel { get; set; } = SimpleLogger.LogSeverity.Information;
-
-    /// <summary>
-    /// Stores the name of the logged app.
-    /// </summary>
-    public string LoggedAppName { get; set; } = "Program";
 }
 
 /// <summary>
@@ -40,7 +45,7 @@ public class SimpleLoggerOptions(string logsRootDirectory)
 /// <param name="options"></param>
 public class SimpleLogger(SimpleLoggerOptions options)
 {
-    private const string Version = "1.0";
+    private const string Version = "1.1";
     private const string LogFileExtension = ".log";
 
     /// <summary>
@@ -69,12 +74,7 @@ public class SimpleLogger(SimpleLoggerOptions options)
     /// <summary>
     /// Determines if logging is enabled.
     /// </summary>
-    public bool IsEnabled { get; private set; }
-
-    /// <summary>
-    /// This property can silence enabled logger when true.
-    /// </summary>
-    public bool IsSilent { get; set; }
+    public bool IsEnabled { get; set; }
 
     /// <summary>
     /// Combines a path to a new log file. 
@@ -121,7 +121,17 @@ public class SimpleLogger(SimpleLoggerOptions options)
     /// <param name="message"></param>
     public void Log(LogSeverity logSeverity, string message)
     {
-        if (logSeverity >= _options.MinSeverityLevel && IsEnabled && !IsSilent)
+        if (logSeverity >= _options.MinSeverityLevel && IsEnabled)
             SafelyAppendFile(CurrentLogFilePath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{logSeverity.ToString().Left(3).ToUpper()}] {message}\n");
+    }
+
+    /// <summary>
+    /// Logs a debug message <paramref name="message"/> into a log file if it is allowed.
+    /// </summary>
+    /// <param name="logSeverity"></param>
+    /// <param name="message"></param>
+    public void LogDebug(LogSeverity logSeverity, string message)
+    {
+        if (_options.AllowDebugMessages) Log(logSeverity, message);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text;
 using static System.Globalization.NumberStyles;
 
 namespace LimebrellaSharpCore.Helpers;
@@ -165,7 +166,54 @@ public static class CustomBitConverter
     /// <param name="int64"></param>
     /// <param name="isBigEndian"></param>
     /// <returns></returns>
-    public static string ToHexString(this ulong[] int64, bool isBigEndian = true) 
+    public static string ToHexString(this ulong[] int64, bool isBigEndian = true)
         => string.Join(" ", int64.Select(chunk => chunk.ToHexString(isBigEndian)).ToList());
 
+    /// <summary>
+    /// Converts number to ASCII string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="number"></param>
+    /// <returns></returns>
+    public static string NumberToAsciiString<T>(this T number)
+    {
+        // convert number to ulong
+        var hexString = BitConverter.ToString(BitConverter.GetBytes(Convert.ToUInt64(number)));
+        // remove hyphens and trailing "-00"
+        hexString = hexString.Replace("-00", string.Empty).Replace("-", string.Empty);
+
+        // convert hex string to ASCII characters
+        var asciiBuilder = new StringBuilder();
+        for (var i = 0; i < hexString.Length; i += 2)
+        {
+            var asciiByte = Convert.ToByte(hexString.Substring(i, 2), 16);
+            var asciiChar = Convert.ToChar(asciiByte);
+            asciiBuilder.Append(asciiChar);
+        }
+        return asciiBuilder.ToString();
+    }
+
+    /// <summary>
+    /// Rounds <paramref name="number"/> to its nearest <paramref name="multiple"/>.
+    /// </summary>
+    /// <param name="number"></param>
+    /// <param name="multiple"></param>
+    /// <returns></returns>
+    public static int RoundToNearestMultiple(int number, int multiple)
+        => (int)Math.Ceiling((double)number / multiple) * multiple;
+
+    /// <summary>
+    /// Finds last index of a <typeparamref name="T"/> in a Span&lt;<typeparamref name="T"/>&gt;
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="span"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static int LastIndexOf<T>(this Span<T> span, T value)
+    {
+        var comparer = EqualityComparer<T>.Default;
+        for (var i = span.Length - 1; i >= 0; i--)
+            if (comparer.Equals(span[i], value)) return i;
+        return -1;
+    }
 }

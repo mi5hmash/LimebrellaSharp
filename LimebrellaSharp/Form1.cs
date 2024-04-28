@@ -18,9 +18,10 @@ public partial class Form1 : Form
         var pValue = new Progress<int>(i => toolStripProgressBar1.Value = i);
         _programCore = new Core(mediator, pText, pValue, new SimpleLogger(new SimpleLoggerOptions(AppInfo.RootPath)
         {
+            AllowDebugMessages = true,
+            LoggedAppName = $"{AppInfo.Title} v{AppInfo.Version}",
             MaxLogFiles = 1,
-            MinSeverityLevel = LogSeverity.Information,
-            LoggedAppName = $"{AppInfo.Title} v{AppInfo.Version}"
+            MinSeverityLevel = LogSeverity.Information
         }));
         _programCore.ActivateLogger();
 
@@ -35,6 +36,11 @@ public partial class Form1 : Form
         TBFilepath.Text = AppInfo.RootPath;
         TBSteamIdInput.Text = @"0";
         TBSteamIdOutput.Text = @"0";
+
+        // transparent SuperUserTrigger hack
+        versionLabel.Controls.Add(superUserTrigger);
+        superUserTrigger.Size = versionLabel.Size;
+        superUserTrigger.Location = new Point(0, 0);
     }
 
     /// <summary>
@@ -71,7 +77,7 @@ public partial class Form1 : Form
     private bool _isSuperUser;
     private int _superUserClicks;
 
-    private void VersionLabel_Click(object sender, EventArgs e)
+    private void SuperUserTrigger_Click(object sender, EventArgs e)
     {
         if (_isSuperUser) return;
 
@@ -183,7 +189,7 @@ public partial class Form1 : Form
         => _programCore.AbortOperation();
 
     private delegate Task OperationDelegate();
-    
+
     private async Task ProcessAsyncOperation(OperationDelegate operationDelegate, SoundsEnum sound = SoundsEnum.None, bool isLongOperation = false)
     {
         if (_programCore.IsBusy) return;
@@ -204,7 +210,7 @@ public partial class Form1 : Form
 
     private async void ButtonResignAll_Click(object sender, EventArgs e)
         => await ProcessAsyncOperation(_programCore.ResignAllAsync, SoundsEnum.Typewritter, true);
-    
+
     #endregion
 
 }

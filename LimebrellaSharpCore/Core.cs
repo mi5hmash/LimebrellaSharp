@@ -116,7 +116,7 @@ public class Core
     /// <param name="filePath"></param>
     /// <param name="fileData"></param>
     /// <returns></returns>
-    private static DialogAnswer WriteBytesToFile(string filePath, Span<byte> fileData)
+    private static DialogAnswer WriteBytesToFile(string filePath, ReadOnlySpan<byte> fileData)
     {
         do
         {
@@ -127,7 +127,7 @@ public class Core
             return dialogResult;
         } while (true);
 
-        static bool TryWriteAllBytes(string fPath, Span<byte> bytes)
+        static bool TryWriteAllBytes(string fPath, ReadOnlySpan<byte> bytes)
         {
             try
             {
@@ -139,7 +139,7 @@ public class Core
     }
     
     /// <summary>
-    /// Opens the Output directory
+    /// Opens the Output directory.
     /// </summary>
     public static void OpenOutputDirectory()
         => OpenDirectory(OutputPath);
@@ -441,8 +441,7 @@ public class Core
                 }
 
                 // log info about the input file
-                if (_logger is { IsEnabled: true, IsSilent: false })
-                    _logger.Log(LogSeverity.Information, $"I_{ctr} | {Path.GetFileName(files[ctr])} | {Md5HashFromFile(files[ctr])} | {dsssFile.IsEncrypted}");
+                _logger.LogDebug(LogSeverity.Information, $"I_{ctr} | {Path.GetFileName(files[ctr])} | {Md5HashFromFile(files[ctr])} | {dsssFile.IsEncrypted}");
 
                 // check operation type and adjust to it
                 switch (operationType)
@@ -501,8 +500,7 @@ public class Core
                 }
 
                 // log info about the output file
-                if (_logger is { IsEnabled: true, IsSilent: false })
-                    _logger.Log(LogSeverity.Information, $"O_{ctr} | {Path.GetFileName(files[ctr])} | {Md5HashFromFile(filePath)} | {dsssFile.IsEncrypted}");
+                _logger.LogDebug(LogSeverity.Information, $"O_{ctr} | {Path.GetFileName(files[ctr])} | {Md5HashFromFile(filePath)} | {dsssFile.IsEncrypted}");
 
                 ORDER_66:
                 Interlocked.Increment(ref progress);
