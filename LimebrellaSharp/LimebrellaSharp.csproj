@@ -1,6 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<!--DPIScalingFix-->
+		<ApplicationHighDpiMode>DpiUnawareGdiScaled</ApplicationHighDpiMode>
+		<!--Main-->
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0-windows7.0</TargetFramework>
 		<RootNamespace>LimebrellaSharp</RootNamespace>
@@ -9,19 +12,18 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<ApplicationIcon>icon.ico</ApplicationIcon>
 		<NeutralLanguage>en-US</NeutralLanguage>
-		<AssemblyVersion>1.2.1.0</AssemblyVersion>
+		<AssemblyVersion>1.2.2.0</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<Version>$(AssemblyVersion)</Version>
 		<Authors>Mi5hmasH</Authors>
 		<Company>$(Authors)</Company>
+		<Copyright>$(Authors) 2024</Copyright>
+		<PackageProjectUrl>https://github.com/mi5hmash/LimebrellaSharp</PackageProjectUrl>
+		<Description>Unpack, Pack &amp; Resign files encrypted with the 1st version of "Lime" encryption.</Description>
 	</PropertyGroup>
-	
-	<ItemGroup>
-		<Content Include="icon.ico" />
-	</ItemGroup>
 	
 	<ItemGroup>
 		<ProjectReference Include="..\LimebrellaSharpCore\LimebrellaSharpCore.csproj" />
 	</ItemGroup>
-	
+
 </Project>
