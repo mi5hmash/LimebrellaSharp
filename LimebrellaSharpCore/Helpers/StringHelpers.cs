@@ -1,4 +1,6 @@
-﻿namespace LimebrellaSharpCore.Helpers;
+﻿// v2024-08-03 21:16:48
+
+namespace LimebrellaSharpCore.Helpers;
 
 public static class StringHelpers
 {
@@ -19,7 +21,7 @@ public static class StringHelpers
     /// <param name="inputString"></param>
     /// <param name="characterCount"></param>
     /// <returns></returns>
-    public static string Left(this string inputString, int characterCount) 
+    public static string Left(this string inputString, int characterCount)
         => inputString[..characterCount];
 
     /// <summary>
@@ -28,6 +30,6 @@ public static class StringHelpers
     /// <param name="inputString"></param>
     /// <param name="characterCount"></param>
     /// <returns></returns>
-    public static string Right(this string inputString, int characterCount) 
+    public static string Right(this string inputString, int characterCount)
         => inputString.Substring(inputString.Length - characterCount, characterCount);
 }

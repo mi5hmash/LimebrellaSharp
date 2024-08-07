@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
+﻿// v2024-08-03 21:16:48
+
+using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace LimebrellaSharpCore.Helpers;
 
@@ -59,20 +62,67 @@ public static class IoHelpers
     /// Reads file using StreamReader.
     /// </summary>
     /// <param name="filePath"></param>
+    /// <param name="encoding"></param>
     /// <returns></returns>
-    public static string ReadFile(string filePath)
+    public static string ReadFile(string filePath, Encoding? encoding = null)
     {
-        using StreamReader sr = new(filePath);
+        // check if fileExists
+        if (!File.Exists(filePath)) return string.Empty;
+        // read file
+        encoding ??= Encoding.Default;
+        using StreamReader sr = new(filePath, encoding);
         return sr.ReadToEnd();
     }
+
+    /// <summary>
+    /// Reads file line by line using StreamReader.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <param name="encoding"></param>
+    /// <returns></returns>
+    public static string[] ReadFileLineByLine(string filePath, Encoding? encoding = null)
+    {
+        // check if fileExists
+        if (!File.Exists(filePath)) return [string.Empty];
+        // read file
+        encoding ??= Encoding.Default;
+        using StreamReader sr = new(filePath, encoding);
+        var textFromFile = sr.ReadToEnd();
+        // split text by NewLine and return lines[]
+        return textFromFile.Split(Environment.NewLine);
+    }
+
+    /// <summary>
+    /// Reads file line by line using StreamReader.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <param name="encoding"></param>
+    /// <returns></returns>
+    public static async Task<string[]> ReadFileLineByLineAsync(string filePath, Encoding? encoding = null)
+    {
+        // check if fileExists
+        if (!File.Exists(filePath)) return [string.Empty];
+        // read file
+        encoding ??= Encoding.Default;
+        using StreamReader sr = new(filePath, encoding);
+        var textFromFile = await sr.ReadToEndAsync();
+        // split text by NewLine and return lines[]
+        return textFromFile.Split(Environment.NewLine);
+    }
+
     /// <summary>
     /// Reads file using StreamReader asynchronously.
     /// </summary>
     /// <param name="filePath"></param>
+    /// <param name="encoding"></param>
     /// <returns></returns>
-    public static async Task<string> ReadFileAsync(string filePath)
+    public static async Task<string> ReadFileAsync(string filePath, Encoding? encoding = null)
     {
-        using StreamReader sr = new(filePath);
+        // check if fileExists
+        if (!File.Exists(filePath)) return string.Empty;
+        // read file
+        encoding ??= Encoding.Default;
+        using StreamReader sr = new(filePath, encoding);
         return await sr.ReadToEndAsync();
     }
 
@@ -82,9 +132,11 @@ public static class IoHelpers
     /// <param name="filePath"></param>
     /// <param name="content"></param>
     /// <param name="append"></param>
-    public static void WriteFile(string filePath, string content, bool append = false)
+    /// <param name="encoding"></param>
+    public static void WriteFile(string filePath, string content, bool append = false, Encoding? encoding = null)
     {
-        using StreamWriter sw = new(filePath, append);
+        encoding ??= Encoding.Default;
+        using StreamWriter sw = new(filePath, append, encoding);
         sw.Write(content);
     }
 
@@ -94,9 +146,11 @@ public static class IoHelpers
     /// <param name="filePath"></param>
     /// <param name="content"></param>
     /// <param name="append"></param>
-    public static async Task WriteFileAsync(string filePath, string content, bool append = false)
+    /// <param name="encoding"></param>
+    public static async Task WriteFileAsync(string filePath, string content, bool append = false, Encoding? encoding = null)
     {
-        await using StreamWriter sw = new(filePath, append);
+        encoding ??= Encoding.Default;
+        await using StreamWriter sw = new(filePath, append, encoding);
         await sw.WriteAsync(content);
     }
 
@@ -105,13 +159,37 @@ public static class IoHelpers
     /// </summary>
     /// <param name="filePath"></param>
     /// <param name="content"></param>
+    /// <param name="encoding"></param>
     /// <returns></returns>
-    public static bool SafelyAppendFile(string filePath, string content)
+    public static bool SafelyAppendFile(string filePath, string content, Encoding? encoding = null)
     {
         try
         {
-            if (File.Exists(filePath)) File.AppendAllText(filePath, content);
+            encoding ??= Encoding.Default;
+            if (File.Exists(filePath)) File.AppendAllText(filePath, content, encoding);
             else File.WriteAllText(filePath, content);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Safely appends <paramref name="content"/> to a text file or saves the <paramref name="content"/> to a new file if it does not exist.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <param name="content"></param>
+    /// <param name="encoding"></param>
+    /// <returns></returns>
+    public static async Task<bool> SafelyAppendFileAsync(string filePath, string content, Encoding? encoding = null)
+    {
+        try
+        {
+            encoding ??= Encoding.Default;
+            if (File.Exists(filePath)) await File.AppendAllTextAsync(filePath, content, encoding);
+            else await File.WriteAllTextAsync(filePath, content);
             return true;
         }
         catch
@@ -140,9 +218,8 @@ public static class IoHelpers
     /// <returns></returns>
     public static string Md5HashFromFile(string filePath)
     {
-        using var md5 = MD5.Create();
         using var stream = File.OpenRead(filePath);
-        var hash = md5.ComputeHash(stream);
+        var hash = MD5.HashData(stream);
         return hash.ToHexString();
     }
 }
