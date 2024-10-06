@@ -3,7 +3,7 @@
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 0x1220)]
-public class DsssLimeDataSegment
+public class LimeDataSegment
 {
     public const int SegmentDataSize = 0x1000;
     public const int SegmentChecksumSize = 4;
@@ -13,7 +13,7 @@ public class DsssLimeDataSegment
     /// Banks containing parts of a hashed public key. 
     /// </summary>
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = HashedKeyBanksSize)]
-    public DsssLimeHashedKeyBank[] HashedKeyBanks = new DsssLimeHashedKeyBank[HashedKeyBanksSize];
+    public LimeHashedKeyBank[] HashedKeyBanks = new LimeHashedKeyBank[HashedKeyBanksSize];
     
     /// <summary>
     /// Raw encrypted data stored in this segment. The size is one page (4096 bytes). 
@@ -28,15 +28,15 @@ public class DsssLimeDataSegment
     public ulong[] SegmentChecksum = new ulong[SegmentChecksumSize];
 
     /// <summary>
-    /// Create a parameter-less <see cref="DsssLimeDataSegment"/>.
+    /// Create a parameter-less <see cref="LimeDataSegment"/>.
     /// </summary>
-    public DsssLimeDataSegment() { }
+    public LimeDataSegment() { }
 
     /// <summary>
-    /// Create a <see cref="DsssLimeDataSegment"/> with given parameters.
+    /// Create a <see cref="LimeDataSegment"/> with given parameters.
     /// </summary>
     /// <param name="segmentChecksum"></param>
-    public DsssLimeDataSegment(ulong[] segmentChecksum)
+    public LimeDataSegment(ulong[] segmentChecksum)
     {
         SegmentChecksum = segmentChecksum;
     }

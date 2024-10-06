@@ -120,22 +120,12 @@ public class Core
     {
         do
         {
-            if (TryWriteAllBytes(filePath, fileData)) return DialogAnswer.Continue;
+            if (WriteBinaryFile(filePath, fileData.ToArray())) return DialogAnswer.Continue;
             // ask the user if they want to try again
             var dialogResult = _mediator.Ask($"""Failed to save the file: "{filePath}".{Environment.NewLine}It may be currently in use by another program.{Environment.NewLine}Would you like to try again?""", "Failed to save the file", QuestionOptions.AbortRetryIgnore, DialogType.Exclamation);
             if (dialogResult == DialogAnswer.Retry) continue;
             return dialogResult;
         } while (true);
-
-        static bool TryWriteAllBytes(string fPath, ReadOnlySpan<byte> bytes)
-        {
-            try
-            {
-                File.WriteAllBytes(fPath, bytes.ToArray());
-            }
-            catch { return false; }
-            return true;
-        }
     }
     
     /// <summary>
@@ -271,7 +261,7 @@ public class Core
         IsBusy = false;
     }
 
-    private delegate void OperationDelegate(DsssLimeFile dsssFile);
+    private delegate void OperationDelegate(LimeFile dsssFile);
 
     private enum OperationType
     {
@@ -337,7 +327,7 @@ public class Core
             // get the paths of "*.bin" files located in the input directory
             var files = Directory.GetFiles(InputDirectory, "*.bin", SearchOption.TopDirectoryOnly);
 
-            var dsssFile = new DsssLimeFile(_deencryptor);
+            var dsssFile = new LimeFile(_deencryptor);
 
             ParallelOptions po = new()
             {
@@ -423,7 +413,7 @@ public class Core
             Parallel.For((long)0, files.Length, po, ctr =>
             {
                 // try to load file
-                var dsssFile = new DsssLimeFile(_deencryptor);
+                var dsssFile = new LimeFile(_deencryptor);
                 var result = dsssFile.SetFileData(files[ctr]);
                 if (!result.Result)
                 {
@@ -513,13 +503,13 @@ public class Core
         });
     }
 
-    private void UnpackAll(DsssLimeFile dsssFile) 
+    private void UnpackAll(LimeFile dsssFile) 
         => dsssFile.DecryptSegments(SteamIdInput);
     
-    private void PackAll(DsssLimeFile dsssFile)
+    private void PackAll(LimeFile dsssFile)
         => dsssFile.EncryptSegments(SteamIdOutput);
 
-    private void ResignAll(DsssLimeFile dsssFile)
+    private void ResignAll(LimeFile dsssFile)
     {
         if (dsssFile.IsEncrypted) UnpackAll(dsssFile);
         PackAll(dsssFile);

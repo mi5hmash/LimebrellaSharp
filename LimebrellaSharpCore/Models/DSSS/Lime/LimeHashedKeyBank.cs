@@ -3,7 +3,7 @@
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 0x80)]
-public struct DsssLimeHashedKeyBank
+public struct LimeHashedKeyBank
 {
     public const int HeaderSize = 8;
     public const int KeyFragmentSize = 8;
@@ -22,9 +22,9 @@ public struct DsssLimeHashedKeyBank
     public ulong[] KeyFragment = [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
 
     /// <summary>
-    /// Create a parameter-less <see cref="DsssLimeHashedKeyBank"/>.
+    /// Create a parameter-less <see cref="LimeHashedKeyBank"/>.
     /// </summary>
-    public DsssLimeHashedKeyBank() { }
+    public LimeHashedKeyBank() { }
     
     /// <summary>
     /// Sets random <see cref="Header"/>.

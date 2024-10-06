@@ -36,9 +36,9 @@ public class LimeDeencryptor
             .Base64DecodeUtf8().ToUlongArray();
 
         _checksumTable1 = "MDEwMzA2MEEwRjE1MUMyNDJEMzcwMjBFMUIyOTM4MDgxOTJCM0UxMjI3M0QxNDJD"
-            .Base64DecodeUtf8().ToBytes();
+            .Base64DecodeUtf8().ToByteArray();
         _checksumTable2 = "MEEwNzBCMTExMjAzMDUxMDA4MTUxODA0MEYxNzEzMEQwQzAyMTQwRTE2MDkwNjAx"
-            .Base64DecodeUtf8().ToBytes();
+            .Base64DecodeUtf8().ToByteArray();
         _checksumTable3 = "MDEwMDAwMDAwMDAwMDAwMDgyODAwMDAwMDAwMDAwMDA4QTgwMDAwMDAwMDAwMDgwMDA4MDAwODAwMDAwMDA4MDhCODAwMDAwMDAwMDAwMDAwMTAwMDA4MDAwMDAwMDAwODE4MDAwODAwMDAwMDA4MDA5ODAwMDAwMDAwMDAwODA4QTAwMDAwMDAwMDAwMDAwODgwMDAwMDAwMDAwMDAwMDA5ODAwMDgwMDAwMDAwMDAwQTAwMDA4MDAwMDAwMDAwOEI4MDAwODAwMDAwMDAwMDhCMDAwMDAwMDAwMDAwODA4OTgwMDAwMDAwMDAwMDgwMDM4MDAwMDAwMDAwMDA4MDAyODAwMDAwMDAwMDAwODA4MDAwMDAwMDAwMDAwMDgwMEE4MDAwMDAwMDAwMDAwMDBBMDAwMDgwMDAwMDAwODA4MTgwMDA4MDAwMDAwMDgwODA4MDAwMDAwMDAwMDA4MDAxMDAwMDgwMDAwMDAwMDAwODgwMDA4MDAwMDAwMDgwMDEwMzA2MEEwRjE1MUMyNA=="
             .Base64DecodeUtf8().ToUlongArray();
     }
@@ -265,7 +265,7 @@ public class LimeDeencryptor
     /// <param name="cKey1"></param>
     /// <param name="cSteamId"></param>
     /// <param name="limeBank"></param>
-    private void HashPublicKeys(ref Span<ulong> segmentHashedKey, ReadOnlySpan<ulong> cKey1, ReadOnlySpan<ulong> cSteamId, ReadOnlySpan<DsssLimeHashedKeyBank> limeBank)
+    private void HashPublicKeys(ref Span<ulong> segmentHashedKey, ReadOnlySpan<ulong> cKey1, ReadOnlySpan<ulong> cSteamId, ReadOnlySpan<LimeHashedKeyBank> limeBank)
     {
         Span<ulong> localContainerA = stackalloc ulong[CLengthMax];
         Span<ulong> localContainerB = stackalloc ulong[CLengthMax];
@@ -630,7 +630,7 @@ public class LimeDeencryptor
     /// <param name="steamId"></param>
     /// <param name="mode"></param>
     /// <returns></returns>
-    public bool Limetree(Span<DsssLimeDataSegment> segments, ulong steamId, Mode mode)
+    public bool Limetree(Span<LimeDataSegment> segments, ulong steamId, Mode mode)
     {
         // load key into container
         Span<ulong> cKey1 = stackalloc ulong[CLengthMax];
@@ -717,7 +717,7 @@ public class LimeDeencryptor
     /// </summary>
     /// <param name="limeSegment"></param>
     /// <param name="steamId"></param>
-    public bool LimepickSegment(DsssLimeDataSegment limeSegment, ulong steamId)
+    public bool LimepickSegment(LimeDataSegment limeSegment, ulong steamId)
     {
         // load key into container
         Span<ulong> cKey1 = stackalloc ulong[CLengthMax];

@@ -4,22 +4,22 @@ using static LimebrellaSharpCore.Helpers.LimeDeencryptor;
 
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
-public class DsssLimeFile(LimeDeencryptor deencryptor)
+public class LimeFile(LimeDeencryptor deencryptor)
 {
     /// <summary>
-    /// Header of the <see cref="DsssLimeFile"/>.
+    /// Header of the <see cref="LimeFile"/>.
     /// </summary>
-    public DsssLimeHeader Header { get; set; } = new();
+    public LimeHeader Header { get; set; } = new();
 
     /// <summary>
-    /// The segments of the <see cref="DsssLimeFile"/>.
+    /// The segments of the <see cref="LimeFile"/>.
     /// </summary>
-    public DsssLimeDataSegment[] Segments { get; set; } = [];
+    public LimeDataSegment[] Segments { get; set; } = [];
 
     /// <summary>
-    /// Footer of <see cref="DsssLimeFile"/>.
+    /// Footer of <see cref="LimeFile"/>.
     /// </summary>
-    public DsssLimeFooter Footer { get; set; } = new();
+    public LimeFooter Footer { get; set; } = new();
 
     /// <summary>
     /// Deencryptor instance.
@@ -32,7 +32,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     public bool IsEncrypted { get; private set; }
 
     /// <summary>
-    /// Loads a '*.bin' archive of <see cref="DsssLimeFile"/> type into the existing object.
+    /// Loads a '*.bin' archive of <see cref="LimeFile"/> type into the existing object.
     /// </summary>
     /// <param name="filePath"></param>
     /// <param name="encryptedFilesOnly"></param>
@@ -51,8 +51,8 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
             if (encryptedFilesOnly) return result;
             
             // reset header and footer
-            Header = new DsssLimeHeader();
-            Footer = new DsssLimeFooter();
+            Header = new LimeHeader();
+            Footer = new LimeFooter();
 
             // try to load decrypted file
             using var fs2 = File.OpenRead(filePath);
@@ -65,7 +65,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     }
 
     /// <summary>
-    /// Tries to set data of a <see cref="DsssLimeFile"/> type based on Stream <paramref name="fs"/>.
+    /// Tries to set data of a <see cref="LimeFile"/> type based on Stream <paramref name="fs"/>.
     /// </summary>
     /// <param name="fs"></param>
     /// <returns></returns>
@@ -76,7 +76,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
         try
         {
             // try to load header data into the Header
-            Header = br.ReadStruct<DsssLimeHeader>() ?? throw new NullReferenceException();
+            Header = br.ReadStruct<LimeHeader>() ?? throw new NullReferenceException();
         }
         catch { return new BoolResult(false, "Invalid file header structure."); }
 
@@ -85,17 +85,17 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
         if (!test.Result) return test;
 
         // SEGMENTS
-        var segmentsLength = fs.Length - (Marshal.SizeOf<DsssLimeHeader>() + Marshal.SizeOf<DsssLimeFooter>());
-        var segmentsCount = segmentsLength / Marshal.SizeOf<DsssLimeDataSegment>();
+        var segmentsLength = fs.Length - (Marshal.SizeOf<LimeHeader>() + Marshal.SizeOf<LimeFooter>());
+        var segmentsCount = segmentsLength / Marshal.SizeOf<LimeDataSegment>();
 
         // overwrite Segments collection
-        Segments = new DsssLimeDataSegment[segmentsCount];
+        Segments = new LimeDataSegment[segmentsCount];
         for (var i = 0; i < segmentsCount; i++)
         {
-            DsssLimeDataSegment segment;
+            LimeDataSegment segment;
             try
             {
-                segment = br.ReadStruct<DsssLimeDataSegment>() ?? throw new NullReferenceException();
+                segment = br.ReadStruct<LimeDataSegment>() ?? throw new NullReferenceException();
             }
             catch { return new BoolResult(false, $"Invalid DsssLimeDataSegment({i}) structure."); }
             Segments[i] = segment;
@@ -109,7 +109,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
         try
         {
             // try to load footer data into the Footer
-            Footer = br.ReadStruct<DsssLimeFooter>() ?? throw new NullReferenceException();
+            Footer = br.ReadStruct<LimeFooter>() ?? throw new NullReferenceException();
         }
         catch { return new BoolResult(false, "Invalid file footer structure."); }
 
@@ -117,22 +117,22 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     }
 
     /// <summary>
-    /// Sets <see cref="Segments"/> of an existing object of a <see cref="DsssLimeFile"/> type based on Stream <paramref name="fs"/>.
+    /// Sets <see cref="Segments"/> of an existing object of a <see cref="LimeFile"/> type based on Stream <paramref name="fs"/>.
     /// </summary>
     /// <param name="fs"></param>
     private void SetFileSegments(Stream fs)
     {
-        var numberOfSegments = (int)Math.Ceiling((double)fs.Length / DsssLimeDataSegment.SegmentDataSize);
-        Segments = new DsssLimeDataSegment[numberOfSegments];
+        var numberOfSegments = (int)Math.Ceiling((double)fs.Length / LimeDataSegment.SegmentDataSize);
+        Segments = new LimeDataSegment[numberOfSegments];
 
         for (var i = 0; i < numberOfSegments; i++)
         {
-            Segments[i] = new DsssLimeDataSegment();
+            Segments[i] = new LimeDataSegment();
             // load data
             _ = fs.Read(Segments[i].SegmentData, 0, Segments[i].SegmentData.Length);
             // set default HashedKeyBanks
             for (var j = 0; j < Segments[i].HashedKeyBanks.Length; j++)
-                Segments[i].HashedKeyBanks[j] = new DsssLimeHashedKeyBank();
+                Segments[i].HashedKeyBanks[j] = new LimeHashedKeyBank();
         }
 
         // save length of decrypted data
@@ -140,7 +140,7 @@ public class DsssLimeFile(LimeDeencryptor deencryptor)
     }
 
     /// <summary>
-    /// Gets an existing object of a <see cref="DsssLimeFile"/> type as byte array.
+    /// Gets an existing object of a <see cref="LimeFile"/> type as byte array.
     /// </summary>
     /// <returns></returns>
     public ReadOnlySpan<byte> GetFileData()

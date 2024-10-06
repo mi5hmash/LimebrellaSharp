@@ -1,4 +1,4 @@
-﻿// v2024-08-03 21:16:48
+﻿// v2024-10-06 12:16:48
 
 using System.Runtime.InteropServices;
 using System.Text;
@@ -60,7 +60,7 @@ public static class CustomBitConverter
     }
 
     /// <summary>
-    /// Read a structure from a BinaryReader
+    /// Read a structure from a BinaryReader.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="bin"></param>
@@ -74,6 +74,14 @@ public static class CustomBitConverter
 
         return ToStruct<T>(buff);
     }
+    /// <summary>
+    /// Read a structure from a Span&lt;byte&gt;.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="span"></param>
+    /// <returns></returns>
+    public static T? ReadStruct<T>(this Span<byte> span) where T : class
+        => ToStruct<T>(span.ToArray());
 
     /// <summary>
     /// Write a structure to a BinaryWriter.
@@ -88,20 +96,12 @@ public static class CustomBitConverter
     }
 
     /// <summary>
-    /// Turns a hex string into a byte array.
+    /// Write a structure to a byte array.
     /// </summary>
-    /// <param name="hex"></param>
-    /// <returns></returns>
-    public static byte[] ToBytes(this string hex)
-    {
-        hex = hex.Replace(" ", "").Replace("-", "");
-        var data = new byte[hex.Length / 2];
-        for (var i = 0; i < hex.Length; i += 2)
-        {
-            data[i / 2] = byte.Parse(hex.Substring(i, 2), HexNumber);
-        }
-        return data;
-    }
+    /// <typeparam name="T"></typeparam>
+    /// <param name="obj"></param>
+    public static byte[] WriteStruct<T>(this T obj) where T : class
+        => ToBytes(obj);
 
     /// <summary>
     /// Turns a byte array into a hex string.
@@ -147,6 +147,22 @@ public static class CustomBitConverter
             uInts.Add(Convert.ToUInt32(formattedChunk, 16));
         }
         return [.. uInts];
+    }
+
+    /// <summary>
+    /// Turns a hex string into a byte array.
+    /// </summary>
+    /// <param name="hex"></param>
+    /// <returns></returns>
+    public static byte[] ToByteArray(this string hex)
+    {
+        hex = hex.Replace(" ", "").Replace("-", "");
+        var data = new byte[hex.Length / 2];
+        for (var i = 0; i < hex.Length; i += 2)
+        {
+            data[i / 2] = byte.Parse(hex.Substring(i, 2), HexNumber);
+        }
+        return data;
     }
 
     /// <summary>

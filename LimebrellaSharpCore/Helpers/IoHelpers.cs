@@ -1,4 +1,4 @@
-﻿// v2024-08-03 21:16:48
+﻿// v2024-10-06 00:16:48
 
 using System.Diagnostics;
 using System.Security.Cryptography;
@@ -24,7 +24,7 @@ public static class IoHelpers
     /// </summary>
     /// <param name="folderPaths"></param>
     /// <returns></returns>
-    public static bool SafelyDeleteDirectory(string[] folderPaths)
+    public static bool SafelyDeleteDirectories(string[] folderPaths)
         => folderPaths.Aggregate(true, (current, folder) => SafelyDeleteDirectory(folder) && current);
 
     /// <summary>
@@ -43,7 +43,7 @@ public static class IoHelpers
     /// </summary>
     /// <param name="filePaths"></param>
     /// <returns></returns>
-    public static bool SafelyDeleteFile(string[] filePaths)
+    public static bool SafelyDeleteFiles(string[] filePaths)
         => filePaths.Aggregate(true, (current, file) => SafelyDeleteFile(file) && current);
 
     /// <summary>
@@ -59,7 +59,55 @@ public static class IoHelpers
     }
 
     /// <summary>
-    /// Reads file using StreamReader.
+    /// Safely reads all bytes of a binary file.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <returns></returns>
+    public static byte[] ReadBinaryFile(string filePath)
+        => !File.Exists(filePath) ? [] : File.ReadAllBytes(filePath);
+
+    /// <summary>
+    /// Safely reads all bytes of a binary file asynchronously.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <returns></returns>
+    public static async Task<byte[]> ReadBinaryFileAsync(string filePath)
+        => !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath);
+
+    /// <summary>
+    /// Tries to write binary file.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public static bool WriteBinaryFile(string filePath, byte[] data)
+    {
+        try
+        {
+            File.WriteAllBytes(filePath, data);
+        }
+        catch { return false; }
+        return true;
+    }
+
+    /// <summary>
+    /// Tries to write binary file asynchronously.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public static async Task<bool> WriteBinaryFileAsync(string filePath, byte[] data)
+    {
+        try
+        {
+            await File.WriteAllBytesAsync(filePath, data);
+        }
+        catch { return false; }
+        return true;
+    }
+
+    /// <summary>
+    /// Reads text file using StreamReader.
     /// </summary>
     /// <param name="filePath"></param>
     /// <param name="encoding"></param>
@@ -75,7 +123,23 @@ public static class IoHelpers
     }
 
     /// <summary>
-    /// Reads file line by line using StreamReader.
+    /// Reads text file using StreamReader asynchronously.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <param name="encoding"></param>
+    /// <returns></returns>
+    public static async Task<string> ReadFileAsync(string filePath, Encoding? encoding = null)
+    {
+        // check if fileExists
+        if (!File.Exists(filePath)) return string.Empty;
+        // read file
+        encoding ??= Encoding.Default;
+        using StreamReader sr = new(filePath, encoding);
+        return await sr.ReadToEndAsync();
+    }
+
+    /// <summary>
+    /// Reads text file line by line using StreamReader.
     /// </summary>
     /// <param name="filePath"></param>
     /// <param name="encoding"></param>
@@ -111,23 +175,7 @@ public static class IoHelpers
     }
 
     /// <summary>
-    /// Reads file using StreamReader asynchronously.
-    /// </summary>
-    /// <param name="filePath"></param>
-    /// <param name="encoding"></param>
-    /// <returns></returns>
-    public static async Task<string> ReadFileAsync(string filePath, Encoding? encoding = null)
-    {
-        // check if fileExists
-        if (!File.Exists(filePath)) return string.Empty;
-        // read file
-        encoding ??= Encoding.Default;
-        using StreamReader sr = new(filePath, encoding);
-        return await sr.ReadToEndAsync();
-    }
-
-    /// <summary>
-    /// Writes file using StreamReader.
+    /// Writes text file using StreamReader.
     /// </summary>
     /// <param name="filePath"></param>
     /// <param name="content"></param>
@@ -141,7 +189,7 @@ public static class IoHelpers
     }
 
     /// <summary>
-    /// Writes file using StreamReader asynchronously.
+    /// Writes text file using StreamReader asynchronously.
     /// </summary>
     /// <param name="filePath"></param>
     /// <param name="content"></param>
@@ -210,6 +258,13 @@ public static class IoHelpers
         else if (Directory.Exists(fPath))
             Process.Start("explorer.exe", fPath);
     }
+
+    /// <summary>
+    /// Opens the website in the default web browser.
+    /// </summary>
+    /// <param name="url"></param>
+    public static void OpenWebsite(string url)
+        => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 
     /// <summary>
     /// Calculates MD5 hash from the file under the given <paramref name="filePath"/>.

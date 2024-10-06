@@ -102,7 +102,7 @@ public class SimpleLogger(SimpleLoggerOptions options)
                 SafelyDeleteFile(logFiles.Last());
                 break;
             case > 0:
-                SafelyDeleteFile(logFiles.TakeLast(limitOverflow).ToArray());
+                SafelyDeleteFiles(logFiles.TakeLast(limitOverflow).ToArray());
                 break;
         }
 
