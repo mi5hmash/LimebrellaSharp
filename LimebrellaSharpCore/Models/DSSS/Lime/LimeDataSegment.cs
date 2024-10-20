@@ -47,7 +47,8 @@ public class LimeDataSegment
     /// <param name="segmentChecksum"></param>
     public void SetSegmentChecksum(ulong[] segmentChecksum)
     {
-        for (var i = 0; i < SegmentChecksumSize; i++) SegmentChecksum[i] = segmentChecksum[i];
+        for (var i = 0; i < SegmentChecksumSize; i++) 
+            SegmentChecksum[i] = segmentChecksum[i];
     }
     public void SetSegmentChecksum(ReadOnlySpan<ulong> segmentChecksum)
     {

@@ -5,14 +5,14 @@
 		<ApplicationHighDpiMode>DpiUnawareGdiScaled</ApplicationHighDpiMode>
 		<!--Main-->
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net8.0-windows7.0</TargetFramework>
-		<RootNamespace>LimebrellaSharp</RootNamespace>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<RootNamespace>LimebrellaSharpWinforms</RootNamespace>
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<ApplicationIcon>icon.ico</ApplicationIcon>
 		<NeutralLanguage>en-US</NeutralLanguage>
-		<AssemblyVersion>1.2.2.0</AssemblyVersion>
+		<AssemblyVersion>2.0.0.0</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<Version>$(AssemblyVersion)</Version>
 		<Authors>Mi5hmasH</Authors>

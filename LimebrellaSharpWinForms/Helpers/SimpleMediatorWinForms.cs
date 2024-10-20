@@ -3,7 +3,7 @@
 using LimebrellaSharpCore.Helpers;
 using static LimebrellaSharpCore.Helpers.ISimpleMediator;
 
-namespace LimebrellaSharp.Helpers;
+namespace LimebrellaSharpWinforms.Helpers;
 
 public class SimpleMediatorWinForms : ISimpleMediator
 {

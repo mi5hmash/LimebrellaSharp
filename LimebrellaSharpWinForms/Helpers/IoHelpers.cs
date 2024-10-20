@@ -1,10 +1,11 @@
-﻿// v2024-10-06 00:16:48
+﻿// v2024-11-29 00:16:48
 
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using LimebrellaSharpCore.Helpers;
 
-namespace LimebrellaSharpCore.Helpers;
+namespace LimebrellaSharpWinforms.Helpers;
 
 public static class IoHelpers
 {
@@ -275,6 +276,17 @@ public static class IoHelpers
     {
         using var stream = File.OpenRead(filePath);
         var hash = MD5.HashData(stream);
+        return hash.ToHexString();
+    }
+
+    /// <summary>
+    /// Calculates MD5 hash from the given <paramref name="data"/>.
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public static string Md5HashFromByteArray(ReadOnlySpan<byte> data)
+    {
+        var hash = MD5.HashData(data);
         return hash.ToHexString();
     }
 }

@@ -1,4 +1,4 @@
-namespace LimebrellaSharp;
+namespace LimebrellaSharpWinforms;
 
 internal static class Program
 {

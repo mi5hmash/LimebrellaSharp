@@ -1,4 +1,4 @@
-﻿namespace LimebrellaSharp
+﻿namespace LimebrellaSharpWinforms
 {
     partial class MainForm
     {
@@ -122,7 +122,7 @@
             // 
             // pb_AppIcon
             // 
-            pb_AppIcon.Image = Properties.Resources.Limebrella_Sharp_Icon_x256;
+            pb_AppIcon.Image = (Image)resources.GetObject("pb_AppIcon.Image");
             pb_AppIcon.Location = new Point(386, 12);
             pb_AppIcon.Name = "pb_AppIcon";
             pb_AppIcon.Size = new Size(112, 117);

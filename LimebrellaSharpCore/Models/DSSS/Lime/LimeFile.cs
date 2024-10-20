@@ -1,11 +1,20 @@
 ﻿using System.Runtime.InteropServices;
 using LimebrellaSharpCore.Helpers;
-using static LimebrellaSharpCore.Helpers.LimeDeencryptor;
 
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
-public class LimeFile(LimeDeencryptor deencryptor)
+public class LimeFile(LimeDeencryptor deencryptor, string filename = "")
 {
+    /// <summary>
+    /// Extension of the <see cref="LimeFile"/>.
+    /// </summary>
+    public const string Extension = "bin";
+
+    /// <summary>
+    /// Name of the <see cref="LimeFile"/>.
+    /// </summary>
+    public string FileName { get; set; } = filename;
+
     /// <summary>
     /// Header of the <see cref="LimeFile"/>.
     /// </summary>
@@ -32,31 +41,34 @@ public class LimeFile(LimeDeencryptor deencryptor)
     public bool IsEncrypted { get; private set; }
 
     /// <summary>
-    /// Loads a '*.bin' archive of <see cref="LimeFile"/> type into the existing object.
+    /// Stores the encryption state of the current file.
     /// </summary>
-    /// <param name="filePath"></param>
+    public uint Key { get; set; }
+
+    /// <summary>
+    /// Loads the <paramref name="data"/> into the <see cref="LimeFile"/> object.
+    /// </summary>
+    /// <param name="data"></param>
     /// <param name="encryptedFilesOnly"></param>
     /// <returns></returns>
-    public BoolResult SetFileData(string filePath, bool encryptedFilesOnly = false)
+    public BoolResult SetFileData(ReadOnlySpan<byte> data, bool encryptedFilesOnly = false)
     {
         try
         {
-            // try to load the encrypted file
-            using var fs = File.OpenRead(filePath);
-            var result = TrySetFileData(fs);
+            // try to load the encrypted data
+            var result = TrySetFileData(data);
             IsEncrypted = result.Result;
             if (result.Result) return result;
 
-            // escape the function if only the encrypted files are needed
+            // escape the function if only the encrypted data is needed
             if (encryptedFilesOnly) return result;
             
             // reset header and footer
             Header = new LimeHeader();
             Footer = new LimeFooter();
 
-            // try to load decrypted file
-            using var fs2 = File.OpenRead(filePath);
-            SetFileSegments(fs2);
+            // try to load decrypted data
+            SetFileSegments(data);
             IsEncrypted = false;
             return new BoolResult(true);
         }
@@ -65,13 +77,14 @@ public class LimeFile(LimeDeencryptor deencryptor)
     }
 
     /// <summary>
-    /// Tries to set data of a <see cref="LimeFile"/> type based on Stream <paramref name="fs"/>.
+    /// Tries to set the <paramref name="data"/> of a <see cref="LimeFile"/>.
     /// </summary>
-    /// <param name="fs"></param>
+    /// <param name="data"></param>
     /// <returns></returns>
-    private BoolResult TrySetFileData(Stream fs)
+    private BoolResult TrySetFileData(ReadOnlySpan<byte> data)
     {
-        using BinReader br = new(fs);
+        using MemoryStream ms = new(data.ToArray());
+        using BinaryReader br = new(ms);
         // HEADER
         try
         {
@@ -85,7 +98,7 @@ public class LimeFile(LimeDeencryptor deencryptor)
         if (!test.Result) return test;
 
         // SEGMENTS
-        var segmentsLength = fs.Length - (Marshal.SizeOf<LimeHeader>() + Marshal.SizeOf<LimeFooter>());
+        var segmentsLength = ms.Length - (Marshal.SizeOf<LimeHeader>() + Marshal.SizeOf<LimeFooter>());
         var segmentsCount = segmentsLength / Marshal.SizeOf<LimeDataSegment>();
 
         // overwrite Segments collection
@@ -117,26 +130,26 @@ public class LimeFile(LimeDeencryptor deencryptor)
     }
 
     /// <summary>
-    /// Sets <see cref="Segments"/> of an existing object of a <see cref="LimeFile"/> type based on Stream <paramref name="fs"/>.
+    /// Sets <see cref="Segments"/> of an existing object of a <see cref="LimeFile"/> type based on the <paramref name="data"/>.
     /// </summary>
-    /// <param name="fs"></param>
-    private void SetFileSegments(Stream fs)
+    /// <param name="data"></param>
+    private void SetFileSegments(ReadOnlySpan<byte> data)
     {
-        var numberOfSegments = (int)Math.Ceiling((double)fs.Length / LimeDataSegment.SegmentDataSize);
+        var numberOfSegments = (int)Math.Ceiling((double)data.Length / LimeDataSegment.SegmentDataSize);
         Segments = new LimeDataSegment[numberOfSegments];
 
+        using MemoryStream ms = new(data.ToArray());
         for (var i = 0; i < numberOfSegments; i++)
         {
             Segments[i] = new LimeDataSegment();
             // load data
-            _ = fs.Read(Segments[i].SegmentData, 0, Segments[i].SegmentData.Length);
+            _ = ms.Read(Segments[i].SegmentData, 0, Segments[i].SegmentData.Length);
             // set default HashedKeyBanks
             for (var j = 0; j < Segments[i].HashedKeyBanks.Length; j++)
                 Segments[i].HashedKeyBanks[j] = new LimeHashedKeyBank();
         }
-
         // save length of decrypted data
-        Footer.DecryptedDataLength = fs.Length;
+        Footer.DecryptedDataLength = data.Length;
     }
 
     /// <summary>
@@ -149,7 +162,7 @@ public class LimeFile(LimeDeencryptor deencryptor)
         Footer.GenerateSalt();
 
         using MemoryStream ms = new();
-        using BinWriter bw = new(ms);
+        using BinaryWriter bw = new(ms);
         // write DSSS HEADER content
         bw.WriteStruct(Header);
         // write DSSS SEGMENTS content
@@ -182,11 +195,10 @@ public class LimeFile(LimeDeencryptor deencryptor)
     /// <summary>
     /// Encrypts <see cref="Segments"/>.
     /// </summary>
-    /// <param name="steamId"></param>
     /// <returns></returns>
-    public bool EncryptSegments(ulong steamId)
+    public bool EncryptSegments()
     {
-        var result = Deencryptor.Limetree(Segments, steamId, Mode.Encrypt);
+        var result = Deencryptor.EncryptData(Segments, Key);
         if (result) IsEncrypted ^= true;
         return result;
     }
@@ -194,23 +206,25 @@ public class LimeFile(LimeDeencryptor deencryptor)
     /// <summary>
     /// Decrypts <see cref="Segments"/>.
     /// </summary>
-    /// <param name="steamId"></param>
     /// <returns></returns>
-    public bool DecryptSegments(ulong steamId)
+    public bool DecryptSegments()
     {
-        var result = Deencryptor.Limetree(Segments, steamId, Mode.Decrypt);
+        var result = Deencryptor.DecryptData(Segments, Key);
         if (result) IsEncrypted ^= true;
         return result;
     }
 
     /// <summary>
-    /// Bruteforces the nth segment of <see cref="Segments"/>.
+    /// Bruteforces the <paramref name="segmentIndex"/> of <see cref="Segments"/>.
     /// </summary>
-    /// <param name="steamId"></param>
+    /// <param name="end"></param>
     /// <param name="segmentIndex"></param>
-    /// <returns></returns>
-    public bool BruteforceSegment(ulong steamId, uint segmentIndex = 0)
-        => Deencryptor.LimepickSegment(Segments[segmentIndex], steamId);
+    /// <param name="id"></param>
+    /// <param name="cts"></param>
+    /// <param name="start"></param>
+    /// <returns>Operation status and working <paramref name="id"/> if true.</returns>
+    public bool BruteforceSegment(out uint id, CancellationTokenSource cts, uint start, uint end, uint segmentIndex = 0)
+        => Deencryptor.LimepickSegmentBatch(cts, Segments[segmentIndex], start, end, out id);
 
     /// <summary>
     /// Calculates MurmurHash3.
@@ -226,29 +240,33 @@ public class LimeFile(LimeDeencryptor deencryptor)
         const uint hash3 = 0xC2B2AE35;
         const uint hash4 = 0x85EBCA6B;
 
-        var lengthInBytes = data.Length * 4;
+        const byte rotation1 = 0xD;
+        const byte rotation2 = 0xF;
+        const byte shift1 = 0x10;
+
+        var lengthInBytes = data.Length * sizeof(uint);
 
         foreach (var e in data)
-            seed = 5 * (uint.RotateLeft((hash0 * uint.RotateLeft(hash1 * e, 15)) ^ seed, 13) - hash2);
+            seed = 5 * (uint.RotateLeft((hash0 * uint.RotateLeft(hash1 * e, rotation2)) ^ seed, rotation1) - hash2);
 
         uint mod0 = 0;
         switch (lengthInBytes & 3)
         {
+            case 3:
+                mod0 = data[2] << shift1;
+                goto case 2;
             case 2:
                 mod0 ^= data[1] << 8;
                 goto case 1;
-            case 3:
-                mod0 = data[2] << 16;
-                goto case 2;
             case 1:
-                seed ^= hash0 * uint.RotateLeft(hash1 * (mod0 ^ data[0]), 15);
+                seed ^= hash0 * uint.RotateLeft(hash1 * (mod0 ^ data[0]), rotation2);
                 break;
         }
 
         var basis = (uint)(lengthInBytes ^ seed);
-        var hiWordOfBasis = (basis >> 16) & 0xFFFF;
+        var hiWordOfBasis = (basis >> shift1) & 0xFFFF;
 
-        return (hash3 * ((hash4 * (basis ^ hiWordOfBasis)) ^ ((hash4 * (basis ^ hiWordOfBasis)) >> 13))) ^ ((hash3 * ((hash4 * (basis ^ hiWordOfBasis)) ^ ((hash4 * (basis ^ hiWordOfBasis)) >> 13))) >> 16);
+        return (hash3 * ((hash4 * (basis ^ hiWordOfBasis)) ^ ((hash4 * (basis ^ hiWordOfBasis)) >> rotation1))) ^ ((hash3 * ((hash4 * (basis ^ hiWordOfBasis)) ^ ((hash4 * (basis ^ hiWordOfBasis)) >> rotation1))) >> shift1);
     }
 
     /// <summary>
@@ -258,36 +276,4 @@ public class LimeFile(LimeDeencryptor deencryptor)
     /// <param name="fileData"></param>
     private static void SignFile(ref Span<uint> fileData)
         => fileData[^1] = Murmur3_32(fileData[..^1], 0xFFFFFFFF);
-
-    /// <summary>
-    /// Tests if any of the known KnownSteamIDs works.
-    /// </summary>
-    /// <param name="steamId"></param>
-    /// <returns></returns>
-    public bool TestKnownSteamIDs(ref uint steamId)
-    {
-        var result = BruteforceSegment(steamId);
-        if (result) return true;
-        uint[] knownSteamIds = [411651526, 0];
-        foreach (var sid in knownSteamIds)
-        {
-            result = BruteforceSegment(sid);
-            if (!result) continue;
-            steamId = sid;
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Returns false if file is not supported.
-    /// </summary>
-    /// <returns></returns>
-    public BoolResult CheckCompatibility(ref uint steamId)
-    {
-        if (!IsEncrypted) return new BoolResult(true);
-        // Test all known steamIDs
-        var result = TestKnownSteamIDs(ref steamId);
-        return !result ? new BoolResult(false, $"File was not encrypted with provided SteamID ({steamId}) and is not compatible.") : new BoolResult(true); 
-    }
 }

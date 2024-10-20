@@ -1,47 +1,13 @@
-using LimebrellaSharp.Helpers;
 using System.Media;
-using LimebrellaSharpCore;
 using LimebrellaSharpCore.Helpers;
-using static LimebrellaSharpCore.Helpers.SimpleLogger;
+using LimebrellaSharpWinforms.Helpers;
+using static LimebrellaSharpWinforms.Core;
 
-namespace LimebrellaSharp;
+namespace LimebrellaSharpWinforms;
 
 public partial class MainForm : Form
 {
-    // Program Core
-    private readonly Core _programCore;
-
-    public MainForm()
-    {
-        var mediator = new SimpleMediatorWinForms();
-        var pText = new Progress<string>(s => toolStripStatusLabel1.Text = s);
-        var pValue = new Progress<int>(i => toolStripProgressBar1.Value = i);
-        _programCore = new Core(mediator, pText, pValue, new SimpleLogger(new SimpleLoggerOptions(AppInfo.RootPath)
-        {
-            AllowDebugMessages = true,
-            LoggedAppName = $"{AppInfo.Title} v{AppInfo.Version}",
-            MaxLogFiles = 1,
-            MinSeverityLevel = LogSeverity.Information
-        }));
-        _programCore.ActivateLogger();
-
-        InitializeComponent();
-    }
-
-    private void Form1_Load(object sender, EventArgs e)
-    {
-        // set controls
-        versionLabel.Text = $@"v{AppInfo.Version}";
-        authorLabel.Text = $@"{AppInfo.Author} 2024";
-        TBFilepath.Text = AppInfo.RootPath;
-        TBSteamIdInput.Text = @"0";
-        TBSteamIdOutput.Text = @"0";
-
-        // transparent SuperUserTrigger hack
-        versionLabel.Controls.Add(superUserTrigger);
-        superUserTrigger.Size = versionLabel.Size;
-        superUserTrigger.Location = new Point(0, 0);
-    }
+    #region SOUNDS
 
     /// <summary>
     /// Enumeration of all available Sounds.
@@ -61,7 +27,7 @@ public partial class MainForm : Form
                 SystemSounds.Beep.Play();
                 break;
             case SoundsEnum.Typewritter:
-                SoundPlayer sp = new(Properties.Resources.typewritter_machine);
+                SoundPlayer sp = new(LimebrellaSharp.Properties.Resources.typewritter_machine);
                 sp.Play();
                 break;
             case SoundsEnum.None:
@@ -69,6 +35,8 @@ public partial class MainForm : Form
                 break;
         }
     }
+
+    #endregion
 
     #region SUPER_USER
 
@@ -108,45 +76,73 @@ public partial class MainForm : Form
     }
 
     #endregion
+    
+    #region CONSTRUCTOR
 
-    #region STEAM_ID
+    private readonly Core _core;
 
-    private void TBSteamIdInput_Leave(object sender, EventArgs e)
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    public MainForm()
     {
-        if (sender is not TextBox textBox) return;
-        _programCore.SetSteamIdInput(textBox.Text);
-        textBox.Text = _programCore.SteamIdInput.ToString();
-    }
-    private void TBSteamIdOutput_Leave(object sender, EventArgs e)
-    {
-        if (sender is not TextBox textBox) return;
-        _programCore.SetSteamIdOutput(textBox.Text);
-        textBox.Text = _programCore.SteamIdOutput.ToString();
-    }
-
-    private void ButtonChangePlaces_Click(object sender, EventArgs e)
-    {
-        _programCore.SteamIdInterchange();
-        TBSteamIdInput.Text = _programCore.SteamIdInput.ToString();
-        TBSteamIdOutput.Text = _programCore.SteamIdOutput.ToString();
+        var progressReporter = new ProgressReporter(
+            new Progress<string>(s => toolStripStatusLabel1.Text = s),
+            new Progress<int>(i => toolStripProgressBar1.Value = i)
+        );
+        _core = new Core(progressReporter);
+        
+        InitializeComponent();
     }
 
-    private async void ButtonBruteforceSteamId_Click(object sender, EventArgs e)
+    private void Form1_Load(object sender, EventArgs e)
     {
-        await ProcessAsyncOperation(_programCore.BruteforceSteamIdAsync, SoundsEnum.System, true);
-        TBSteamIdInput.Text = _programCore.SteamIdInput.ToString();
+        // set controls
+        versionLabel.Text = $@"v{AppInfo.Version}";
+        authorLabel.Text = $@"{AppInfo.Author} 2024";
+        TBFilepath.Text = AppInfo.RootPath;
+        TBSteamIdInput.Text = @"0";
+        TBSteamIdOutput.Text = @"0";
+
+        // transparent SuperUserTrigger hack
+        versionLabel.Controls.Add(superUserTrigger);
+        superUserTrigger.Size = versionLabel.Size;
+        superUserTrigger.Location = new Point(0, 0);
     }
 
     #endregion
 
-    #region INPUT_PATH
+    #region OPERATIONS
 
+    private void TBSteamIdInput_Leave(object sender, EventArgs e)
+    {
+        if (sender is not TextBox textBox) return;
+        _core.SteamIdManager.SetInput(textBox.Text);
+        textBox.Text = _core.SteamIdManager.GetInput();
+    }
+
+    private void TBSteamIdOutput_Leave(object sender, EventArgs e)
+    {
+        if (sender is not TextBox textBox) return;
+        _core.SteamIdManager.SetOutput(textBox.Text);
+        textBox.Text = _core.SteamIdManager.GetOutput();
+    }
+
+    private void ButtonChangePlaces_Click(object sender, EventArgs e)
+    {
+        if (_core.IsBusy) return;
+
+        _core.SteamIdManager.SteamIdInterchange();
+        TBSteamIdInput.Text = _core.SteamIdManager.GetInput();
+        TBSteamIdOutput.Text = _core.SteamIdManager.GetOutput();
+    }
+    
     private void ValidatePath(object sender)
     {
         if (sender is not TextBox textBox) return;
-        _programCore.SetInputDirectory(textBox.Text);
-        textBox.Text = _programCore.InputDirectory;
-        TBSteamIdInput.Text = _programCore.SteamIdInput.ToString();
+        _core.SetInputPath(textBox.Text);
+        textBox.Text = _core.InputPath;
+        TBSteamIdInput.Text = _core.SteamIdManager.GetInput();
     }
 
     private void TBFilepath_Leave(object sender, EventArgs e)
@@ -169,30 +165,25 @@ public partial class MainForm : Form
 
     private void ButtonSelectDir_Click(object sender, EventArgs e)
     {
-        if (_programCore.IsBusy) return;
+        if (_core.IsBusy) return;
         if (folderBrowserDialog1.ShowDialog() != DialogResult.OK) return;
         TBFilepath.Text = folderBrowserDialog1.SelectedPath;
         ValidatePath(TBFilepath);
     }
 
-    #endregion
-
-    #region OPERATIONS
-
     private void AuthorLabel_Click(object sender, EventArgs e)
         => AppInfo.VisitAuthorsGithub();
 
     private void ButtonOpenOutputDir_Click(object sender, EventArgs e)
-        => Core.OpenOutputDirectory();
+        => OpenOutputDirectory();
 
     private void ButtonAbort_Click(object sender, EventArgs e)
-        => _programCore.AbortOperation();
+        => _core.AbortOperation();
 
-    private delegate Task OperationDelegate();
-
-    private async Task ProcessAsyncOperation(OperationDelegate operationDelegate, SoundsEnum sound = SoundsEnum.None, bool isLongOperation = false)
+    private delegate Task ClickOperationDelegate();
+    private async Task ProcessAsyncClickOperation(ClickOperationDelegate operationDelegate, SoundsEnum sound = SoundsEnum.None, bool isLongOperation = false)
     {
-        if (_programCore.IsBusy) return;
+        if (_core.IsBusy) return;
 
         if (isLongOperation) ButtonAbort.Visible = true;
         await operationDelegate();
@@ -202,14 +193,20 @@ public partial class MainForm : Form
         PlaySound(sound);
     }
 
+    private async void ButtonResignAll_Click(object sender, EventArgs e)
+        => await ProcessAsyncClickOperation(_core.ResignAllAsync, SoundsEnum.Typewritter, true);
+
     private async void ButtonUnpackAll_Click(object sender, EventArgs e)
-        => await ProcessAsyncOperation(_programCore.UnpackAllAsync, SoundsEnum.Typewritter, true);
+        => await ProcessAsyncClickOperation(_core.UnpackAllAsync, SoundsEnum.Typewritter, true);
 
     private async void ButtonPackAll_Click(object sender, EventArgs e)
-        => await ProcessAsyncOperation(_programCore.PackAllAsync, SoundsEnum.Typewritter, true);
+        => await ProcessAsyncClickOperation(_core.PackAllAsync, SoundsEnum.Typewritter, true);
 
-    private async void ButtonResignAll_Click(object sender, EventArgs e)
-        => await ProcessAsyncOperation(_programCore.ResignAllAsync, SoundsEnum.Typewritter, true);
+    private async void ButtonBruteforceSteamId_Click(object sender, EventArgs e)
+    {
+        await ProcessAsyncClickOperation(_core.BruteforceSteamIdAsync, SoundsEnum.System, true);
+        TBSteamIdInput.Text = _core.SteamIdManager.GetInput();
+    }
 
     #endregion
 

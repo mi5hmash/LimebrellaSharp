@@ -3,7 +3,7 @@
 using System.Diagnostics;
 using System.Reflection;
 
-namespace LimebrellaSharp.Helpers;
+namespace LimebrellaSharpWinforms.Helpers;
 
 /// <summary>
 /// Container for Global Read-Only Variables.
