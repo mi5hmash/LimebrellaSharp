@@ -9,12 +9,12 @@ public class LimeDeencryptor
 {
     #region CONSTANTS
 
-    private const ulong BitMaskPattern = 0x8000000000000000;
+    private const int ContainerCapacity = 34;
+    private const int ChecksumContainerCapacity = 25;
+
     private const ulong KeyType = 20;
     private const int EncSteps = 10;
     private const int AesBlockLength = EncSteps + 1;
-    private const int CLengthMax = 34;
-    private const int ChecksumContainerLength = 25;
 
     private readonly ulong[] _privateKey1;
     private readonly ulong[] _privateKey2;
@@ -51,7 +51,7 @@ public class LimeDeencryptor
     /// <param name="span"></param>
     /// <param name="startPos"></param>
     /// <param name="length"></param>
-    public static void RandomizeSpan(ref Span<byte> span, int length = 0, int startPos = 0)
+    public static void RandomizeSpan(Span<byte> span, int length = 0, int startPos = 0)
     {
         startPos = startPos < 0 ? 0 : startPos;
         startPos = startPos > span.Length ? span.Length : startPos;
@@ -97,13 +97,15 @@ public class LimeDeencryptor
         left * right;
 
     /// <summary>
-    /// Checks how many elements are in the queue.
+    /// Returns the zero-based position of the last non-zero element in the span.
     /// </summary>
-    /// <param name="queue"></param>
+    /// <param name="span"></param>
     /// <returns></returns>
-    private static int QueueLength(ReadOnlySpan<ulong> queue)
+    private static int LastNonZeroIndexZeroBased<T>(ReadOnlySpan<T> span) where T : struct, IEquatable<T>
     {
-        for (var i = queue.Length; i > 0; i--) if (queue[i - 1] != 0) return i;
+        for (var i = span.Length; i > 0; i--)
+            if (!span[i - 1].Equals(default))
+                return i;
         return 0;
     }
 
@@ -132,49 +134,124 @@ public class LimeDeencryptor
         return index;
     }
 
+    /// <summary>
+    /// Returns true if the Most Significant Bit is set.
+    /// </summary>
+    /// <param name="number"></param>
+    /// <returns></returns>
+    private static bool IsMostSignificantBitSet(ulong number)
+        => (number & 0x8000000000000000) != 0;
+    private static bool IsMostSignificantBitSet(uint number)
+        => (number & 0x80000000) != 0;
+
     #endregion
 
     #region ENCRYPTION METHODS
+
+    /// <summary>
+    /// Handles overflow in the provided <paramref name="container"/>.
+    /// </summary>
+    /// <param name="container"></param>
+    private static void HandleOverflow(Span<ulong> container)
+    {
+        // create a localContainer
+        Span<ulong> localContainer = stackalloc ulong[ContainerCapacity];
+        localContainer[0] = 1;
+
+        SubtractContainers(container, localContainer);
+        const int x = 2;
+        for (var i = 0; i < ContainerCapacity - x; i++)
+            container[i] = ~container[i] & 0xFFFFFFFFFFFFFFFF;
+        for (var i = ContainerCapacity - x; i < ContainerCapacity; i++)
+            container[i] = ~container[i];
+    }
 
     /// <summary>
     /// First type of encryption.
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
-    private static void EncryptionFirst(ref Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
+    /// <exception cref="OverflowException"></exception>
+    private static void EncryptionFirst(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
-        var cLengthA = QueueLength(containerA);
-        if (cLengthA == 0) return;
-        var cLengthB = QueueLength(containerB);
-        if (cLengthB == 0) return;
+        // check for empty containers
+        var containerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+        if (containerALength == 0) return;
+        var containerBLength = LastNonZeroIndexZeroBased(containerB);
+        if (containerBLength == 0) goto ORDER_66;
 
-        Span<ulong> localContainer = stackalloc ulong[CLengthMax];
+        // create a localContainerB
+        Span<ulong> localContainerB = stackalloc ulong[ContainerCapacity];
+        containerB.CopyTo(localContainerB);
 
-        if (cLengthA > 0)
+        // detect overflow in...
+        var overflowSwitch = false;
+        // ... localContainerA
+        if (IsMostSignificantBitSet(containerA[^1]))
         {
-            for (var y = 0; y < cLengthA; y++)
+            throw new OverflowException("ContainerA Overflow");
+            overflowSwitch ^= true;
+            HandleOverflow(containerA);
+            // re-check container length
+            containerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+        }
+
+        // ... localContainerB
+        if (IsMostSignificantBitSet(localContainerB[^1]))
+        {
+            throw new OverflowException("ContainerB Overflow");
+            overflowSwitch ^= true;
+            HandleOverflow(localContainerB);
+            // re-check container length
+            containerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+            if (containerBLength == 0) goto OVERFLOWN_ENDING;
+        }
+
+        // create a resultContainer
+        Span<ulong> resultContainer = stackalloc ulong[ContainerCapacity];
+
+        // manipulate bytes in both containers
+        if (containerALength > 0)
+        {
+            for (var y = 0; y < containerALength; y++)
             {
                 ulong salt = 0;
-                if (cLengthB > 0)
+                if (containerBLength > 0)
                 {
                     var firstPart = containerA[y];
-                    for (var i = 0; i < cLengthB; i++)
+                    for (var i = 0; i < containerBLength; i++)
                     {
-                        var lowBytes = MulLow(firstPart, containerB[i]);
-                        var highBytes = MulHigh(firstPart, containerB[i]);
+                        var lowBytes = MulLow(firstPart, localContainerB[i]);
+                        var highBytes = MulHigh(firstPart, localContainerB[i]);
                         var basis = lowBytes + salt;
                         if (basis < salt) highBytes++;
-                        var result = basis + localContainer[y + i];
+                        var result = basis + resultContainer[y + i];
                         if (result < basis) highBytes++;
-                        localContainer[y + i] = result;
+                        resultContainer[y + i] = result;
                         salt = highBytes;
                     }
                 }
-                localContainer[cLengthB + y] = salt;
+
+                resultContainer[containerBLength + y] = salt;
             }
         }
+
+        // if there was only one overflow then pick an alternative route
+        if (overflowSwitch) goto OVERFLOWN_ENDING;
+
         // Update referenced containerA
-        localContainer.CopyTo(containerA);
+        resultContainer.CopyTo(containerA);
+        return;
+
+    OVERFLOWN_ENDING:
+        containerA.Clear();
+        SubtractContainers(containerA, resultContainer);
+        return;
+
+    // Execute...
+    ORDER_66:
+        // set all the containerA elements to 0
+        containerA.Clear();
     }
 
     /// <summary>
@@ -182,17 +259,17 @@ public class LimeDeencryptor
     /// </summary>
     /// <param name="dataContainer"></param>
     /// <param name="bits"></param>
-    private static void EncryptionSecond(ref Span<ulong> dataContainer, int bits)
+    private static void EncryptionSecond(Span<ulong> dataContainer, int bits)
     {
         var division = bits >> 6; // division by 64
         var reminder = bits & 0x3F; // division reminder
 
         if (reminder != 0)
         {
-            if (division != CLengthMax && division != CLengthMax - 1)
+            if (division != ContainerCapacity && division != ContainerCapacity - 1)
             {
-                var curElement = CLengthMax;
-                for (var i = CLengthMax - division; i > 1; i--, curElement--)
+                var curElement = ContainerCapacity;
+                for (var i = ContainerCapacity - division; i > 1; i--, curElement--)
                 {
                     dataContainer[curElement - 1] = dataContainer[i - 1] << reminder;
                     dataContainer[curElement - 1] |= dataContainer[i - 2] >> (0x40 - reminder);
@@ -202,10 +279,10 @@ public class LimeDeencryptor
         }
         else if (division != 0)
         {
-            var curElement = CLengthMax - division;
-            if (division != CLengthMax)
+            var curElement = ContainerCapacity - division;
+            if (division != ContainerCapacity)
             {
-                for (var i = CLengthMax; curElement > 0; i--, curElement--)
+                for (var i = ContainerCapacity; curElement > 0; i--, curElement--)
                     dataContainer[i - 1] = dataContainer[curElement - 1];
             }
         }
@@ -215,16 +292,16 @@ public class LimeDeencryptor
     }
 
     /// <summary>
-    /// Third type of encryption (subtract variant).
+    /// Subtracts two containers from one another.
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
     /// <returns>Modifies <paramref name="containerA"/></returns>
-    private static void EncryptionThirdSub(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
+    private static void SubtractContainers(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
         byte testA = 0;
         byte testB = 0;
-        for (var i = 0; i < CLengthMax; i++)
+        for (var i = 0; i < ContainerCapacity; i++)
         {
             var test0 = Convert.ToByte(testA | testB);
             var newValue = containerA[i] - containerB[i] - test0;
@@ -235,16 +312,16 @@ public class LimeDeencryptor
     }
 
     /// <summary>
-    /// Third type of encryption (addition variant).
+    /// Adds two containers to one another.
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
     /// <returns>Modifies <paramref name="containerA"/></returns>
-    private static void EncryptionThirdAdd(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
+    private static void AddContainers(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
         byte testA = 0;
         byte testB = 0;
-        for (var i = 0; i < CLengthMax; i++)
+        for (var i = 0; i < ContainerCapacity; i++)
         {
             var test0 = Convert.ToByte(testA | testB);
             var newValue = containerA[i] + containerB[i] + test0;
@@ -253,11 +330,11 @@ public class LimeDeencryptor
             containerA[i] = newValue;
         }
     }
-    
+
     #endregion
 
     #region METHODS
-    
+
     /// <summary>
     /// Hashes public keys and combines them together.
     /// </summary>
@@ -265,16 +342,16 @@ public class LimeDeencryptor
     /// <param name="cKey1"></param>
     /// <param name="cSteamId"></param>
     /// <param name="limeBank"></param>
-    private void HashPublicKeys(ref Span<ulong> segmentHashedKey, ReadOnlySpan<ulong> cKey1, ReadOnlySpan<ulong> cSteamId, ReadOnlySpan<LimeHashedKeyBank> limeBank)
+    private void HashPublicKeys(Span<ulong> segmentHashedKey, ReadOnlySpan<ulong> cKey1, ReadOnlySpan<ulong> cSteamId, ReadOnlySpan<LimeHashedKeyBank> limeBank)
     {
-        Span<ulong> localContainerA = stackalloc ulong[CLengthMax];
-        Span<ulong> localContainerB = stackalloc ulong[CLengthMax];
+        Span<ulong> localContainerA = stackalloc ulong[ContainerCapacity];
+        Span<ulong> localContainerB = stackalloc ulong[ContainerCapacity];
         for (var i = 0; i < limeBank.Length; i++)
         {
             limeBank[i].Header.CopyTo(localContainerA);
             Limegator(localContainerA, cSteamId, cKey1);
             limeBank[i].KeyFragment.CopyTo(localContainerB);
-            Limeghetti(ref localContainerB, localContainerA);
+            Limeghetti(localContainerB, localContainerA);
             // put the calculated part of the key in the segmentHashedKey
             segmentHashedKey[i] = localContainerB[0];
         }
@@ -285,7 +362,7 @@ public class LimeDeencryptor
     /// </summary>
     /// <param name="aesRoundKeys"></param>
     /// <param name="inputKey"></param>
-    private static void AesKeygen(ref Span<Vector128<byte>> aesRoundKeys, ReadOnlySpan<Vector128<byte>> inputKey)
+    private static void AesKeygen(Span<Vector128<byte>> aesRoundKeys, ReadOnlySpan<Vector128<byte>> inputKey)
     {
         // build the first block
         aesRoundKeys[0] = inputKey[0];
@@ -333,117 +410,194 @@ public class LimeDeencryptor
         // close roundKeys with the second part of an inputKey
         aesRoundKeys[^1] = inputKey[1];
     }
-
+    
     /// <summary>
     /// Prepare a delicious knot of Limeghetti.
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
-    private void Limeghetti(ref Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
+    /// <exception cref="OverflowException"></exception>
+    private static void Limeghetti(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
         // check for empty containers
-        var cLengthA = QueueLength(containerA);
-        if (cLengthA == 0) return;
-        var cLengthB = QueueLength(containerB);
-        if (cLengthB == 0) goto ORDER_66;
+        var containerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+        if (containerALength == 0) return;
+        var containerBLength = LastNonZeroIndexZeroBased(containerB);
+        if (containerBLength == 0) goto ORDER_66;
         
-        // check if the last bit of localContainerA is not 0
-        if ((containerA[^1] & BitMaskPattern) != 0)
-        {
-            // check if the last bit of localContainerB is 0
-            if ((containerB[^1] & BitMaskPattern) == 0) goto ORDER_66;
-        }
-
-        // check if the last bit of localContainerB is 0
-        if ((containerB[^1] & BitMaskPattern) == 0)
-        {
-            for (var i = CLengthMax; i > 0; i--)
-            {
-                // check if nth element of localContainerA is less than localContainerB
-                if (containerA[i - 1] < containerB[i - 1]) goto ORDER_66;
-                // check if nth element of localContainerA is greater than localContainerB
-                if (containerA[i - 1] > containerB[i - 1]) break;
-            }
-        }
-
-        // calculate how many elements are in a localContainerB
-        var tinyHashesToCalculate = (cLengthA - cLengthB) * 2;
-
-        var bits = 32 - ((RootDegree(containerB[cLengthB - 1], 1) + ((cLengthB - 1) << 6)) & 31);
-
         // create a localContainerB
-        Span<ulong> localContainerB = stackalloc ulong[CLengthMax];
+        Span<ulong> localContainerB = stackalloc ulong[ContainerCapacity];
         containerB.CopyTo(localContainerB);
 
-        // perform EncryptionSecond on both containers
-        EncryptionSecond(ref containerA, bits);
-        EncryptionSecond(ref localContainerB, bits);
+        // create other localContainers
+        Span<ulong> localContainerC = stackalloc ulong[ContainerCapacity];
+        Span<ulong> localContainerD = stackalloc ulong[ContainerCapacity];
+        Span<ulong> localContainerE = stackalloc ulong[ContainerCapacity];
+        Span<ulong> resultContainer = stackalloc ulong[ContainerCapacity];
 
-        // recalculate containers' lengths
-        cLengthA = QueueLength(containerA);
-        cLengthB = QueueLength(localContainerB);
-
-        // create containers
-        Span<ulong> localContainerC = stackalloc ulong[CLengthMax];
-        Span<ulong> localContainerD = stackalloc ulong[CLengthMax];
-        Span<ulong> localContainerE = stackalloc ulong[CLengthMax];
-        Span<ulong> resultContainer = stackalloc ulong[CLengthMax];
-
-        var currentSegment = 0;
-        var lastQueueElemB = localContainerB[cLengthB - 1] >> 32;
-        do
+        // detect overflow in...
+        // ... localContainerA
+        if (IsMostSignificantBitSet(containerA[^1]))
         {
-            var isEven = tinyHashesToCalculate % 2 == 0;
-            // increase currentSegment by 1 when the tinyHashesToCalculate is divisible by 2
-            if (isEven) currentSegment++;
+            throw new OverflowException("ContainerA Overflow");
+            HandleOverflow(containerA);
+        }
+        // ... localContainerB
+        if (IsMostSignificantBitSet(localContainerB[^1]))
+        {
+            throw new OverflowException("ContainerB Overflow");
+            HandleOverflow(localContainerB);
+        }
 
-            // set lastQueueElemA and calculate lastQueueElemDiv
-            var lastQueueElemA = isEven
-                ? containerA[cLengthA - currentSegment]
-                : (containerA[cLengthA - currentSegment] << 32) | (containerA[cLengthA - currentSegment - 1] >> 32);
-            var lastQueueElemDiv = lastQueueElemA / lastQueueElemB;
+        if (IsMostSignificantBitSet(containerA[^1]))
+        {
+            if (!IsMostSignificantBitSet(localContainerB[^1])) goto ORDER_66;
+            if (IsLastElementOfASmallerThanB(containerA, localContainerB)) goto ORDER_66;
+        }
+        else if (!IsMostSignificantBitSet(localContainerB[^1]))
+        {
+            if (IsLastElementOfASmallerThanB(containerA, localContainerB)) goto ORDER_66;
+        }
 
-            // create a snapshot of current localContainerB
-            localContainerB.CopyTo(localContainerC);
+        // check container length
+        var localContainerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+        int localContainerALength;
 
-            // create a new container with lastQueueElemDiv at index 0
-            localContainerD.Clear();
-            localContainerD[0] = lastQueueElemDiv;
+        // calculate bits
+        var rootDegree = localContainerBLength == 0 ? 0 : RootDegree(localContainerB[localContainerBLength - 1], 1);
+        var bits = 32 - (rootDegree & 0x1F);
 
-            // perform EncryptionSecond and EncryptionFirst on localContainerC
-            EncryptionSecond(ref localContainerC, (tinyHashesToCalculate - 1) * 32);
-            EncryptionFirst(ref localContainerC, localContainerD);
+        // perform EncryptionSecond on both localContainers
+        EncryptionSecond(containerA, bits);
+        EncryptionSecond(localContainerB, bits);
 
-            for (var i = CLengthMax; i > 0; i--)
+        // clear localContainerH
+        resultContainer.Clear();
+
+        // re-check container length
+        localContainerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+
+        // remember the last element of localContainerA
+        var lastElementA = containerA[^1];
+        // remember the last element of localContainerB
+        var lastElementB = containerA[^1];
+
+        if (localContainerBLength > 0)
+        {
+            var tinyHashesB = 2 * localContainerBLength - 1;
+            var lastQueueElemB = localContainerB[localContainerBLength - 1] >> 32;
+            if (lastQueueElemB == 0)
             {
-                // check if nth element of localContainerA is less than localContainerC
-                if (containerA[i - 1] < localContainerC[i - 1])
-                {
-                    // reuse localContainerD as a snapshot of current localContainerB 
-                    localContainerB.CopyTo(localContainerD);
-                    EncryptionSecond(ref localContainerD, (tinyHashesToCalculate - 1) * 32);
-                    EncryptionThirdSub(localContainerC, localContainerD);
-                    // decrease lastQueueElemDiv by 1
-                    lastQueueElemDiv -= 1;
-                    // reset loop
-                    i = CLengthMax;
-                }
-                // check if nth element of localContainerA is greater than localContainerC
-                if (containerA[i - 1] > localContainerC[i - 1]) break;
+                tinyHashesB--;
+                lastQueueElemB = localContainerB[localContainerBLength - 1];
             }
 
-            // clear localContainerD
-            localContainerD.Clear();
-            // clear localContainerE and put lastQueueElemDiv at index 0
-            localContainerE.Clear();
-            localContainerE[0] = lastQueueElemDiv;
-            EncryptionThirdAdd(localContainerE, localContainerD);
-            EncryptionSecond(ref localContainerE, (tinyHashesToCalculate - 1) * 32);
-            EncryptionThirdAdd(resultContainer, localContainerE);
-            EncryptionThirdSub(containerA, localContainerC);
-            tinyHashesToCalculate--;
-        } while (tinyHashesToCalculate > 0);
+            LOOP_BREAKER:
+            lastElementA = containerA[^1];
+            if (IsMostSignificantBitSet(containerA[^1]))
+            {
+                if (!IsMostSignificantBitSet(lastElementB)) goto ESCAPE;
+                if (IsLastElementOfASmallerThanB(containerA, localContainerB)) goto ESCAPE;
+            }
+            else if (!IsMostSignificantBitSet(lastElementB))
+            {
+                if (IsLastElementOfASmallerThanB(containerA, localContainerB)) goto ESCAPE;
+            }
+            // re-check container length
+            localContainerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+            switch (localContainerALength)
+            {
+                case 0:
+                    goto ESCAPE;
+                case >= 2:
+                    {
+                        var tinyHashesA = 2 * localContainerALength - 2;
+                        var lastQueueElemA = containerA[localContainerALength - 1];
+                        if (lastQueueElemA >> 32 == 0)
+                        {
+                            tinyHashesA--;
+                            lastQueueElemA = (containerA[localContainerALength - 2] >> 32) + (lastQueueElemA << 32);
+                        }
+                        var hashesGap = tinyHashesA - tinyHashesB;
+                        var lastQueueElemDiv = lastQueueElemA / lastQueueElemB;
 
+                        // copy localContainerB into localContainerC
+                        localContainerB.CopyTo(localContainerC);
+
+                        if (tinyHashesA >= tinyHashesB)
+                        {
+                            if (lastQueueElemDiv >> 32 != 0) lastQueueElemDiv = 0xFFFFFFFF;
+                            EncryptionSecond(localContainerC, 32 * hashesGap);
+                            // prepare localContainerD
+                            localContainerD.Clear();
+                            localContainerD[0] = lastQueueElemDiv;
+                            EncryptionFirst(localContainerC, localContainerD);
+                        }
+                        else
+                        {
+                            hashesGap = 0;
+                            lastQueueElemDiv = 1;
+                        }
+
+                        while (true)
+                        {
+                            if (!IsMostSignificantBitSet(lastElementA))
+                            {
+                                if (IsMostSignificantBitSet(localContainerC[^1])) break;
+                            }
+                            else if (!IsMostSignificantBitSet(localContainerC[^1])) goto CONTINUE;
+
+                            if (!IsLastElementOfASmallerThanB(containerA, localContainerC)) break;
+
+                            CONTINUE:
+                            // prepare localContainerD
+                            localContainerB.CopyTo(localContainerD);
+
+                            EncryptionSecond(localContainerD, 32 * hashesGap);
+                            
+                            SubtractContainers(localContainerC, localContainerD);
+                            lastQueueElemDiv--;
+                        }
+
+                        // prepare localContainerD
+                        localContainerD.Clear();
+                        // prepare localContainerE
+                        localContainerE.Clear();
+                        localContainerE[0] = lastQueueElemDiv;
+
+                        AddContainers(localContainerD, localContainerE);
+                        EncryptionSecond(localContainerD, 32 * hashesGap);
+                        lastElementB = localContainerB[^1];
+
+                        // calculate resultContainer
+                        AddContainers(resultContainer, localContainerD);
+
+                        // prepare localContainerD
+                        localContainerC.CopyTo(localContainerD);
+                        // update containerA
+                        SubtractContainers(containerA, localContainerD);
+                        goto LOOP_BREAKER;
+                    }
+            }
+        }
+        ESCAPE:
+        localContainerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+        localContainerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+
+        if (localContainerBLength > 0 && localContainerALength == 0) goto SECOND_GATE;
+        if (localContainerB.SequenceEqual(containerA)) goto SECOND_GATE;
+
+        if (IsMostSignificantBitSet(lastElementB) && IsMostSignificantBitSet(lastElementA)) goto FIRST_GATE;
+        if (!IsMostSignificantBitSet(lastElementA)) goto FIRST_GATE;
+        goto RETURNAL;
+
+    FIRST_GATE:
+        if (!IsLastElementOfASmallerThanB(localContainerB, containerA)) goto RETURNAL; 
+    SECOND_GATE:
+        localContainerE.Clear();
+        localContainerE[0] = containerA[0] / localContainerB[0];
+        AddContainers(resultContainer, localContainerE);
+    RETURNAL:
         // Padawans survived
         resultContainer.CopyTo(containerA);
         return;
@@ -452,8 +606,21 @@ public class LimeDeencryptor
     ORDER_66:
         // set all the containerA elements to 0
         containerA.Clear();
+        return;
+
+        bool IsLastElementOfASmallerThanB(ReadOnlySpan<ulong> contA, ReadOnlySpan<ulong> contB)
+        {
+            for (var i = ContainerCapacity; i > 0; i--)
+            {
+                // check if nth element of contA is less than contB
+                if (contA[i - 1] < contB[i - 1]) return true;
+                // check if nth element of contA is greater than contB
+                if (contA[i - 1] > contB[i - 1]) return false;
+            }
+            return false;
+        }
     }
-    
+
     /// <summary>
     /// Watch out for its sharp teeth!
     /// </summary>
@@ -463,14 +630,14 @@ public class LimeDeencryptor
     /// <returns>Modified <paramref name="containerA"/></returns>
     private void Limegator(Span<ulong> containerA, ReadOnlySpan<ulong> containerB, ReadOnlySpan<ulong> containerC)
     {
-        Span<ulong> localContainerA = stackalloc ulong[CLengthMax];
+        Span<ulong> localContainerA = stackalloc ulong[ContainerCapacity];
         localContainerA[0] = 1;
 
-        Span<ulong> localContainerB = stackalloc ulong[CLengthMax];
+        Span<ulong> localContainerB = stackalloc ulong[ContainerCapacity];
         containerB.CopyTo(localContainerB);
 
-        Span<ulong> localContainerC = stackalloc ulong[CLengthMax];
-        Span<ulong> localContainerD = stackalloc ulong[CLengthMax];
+        Span<ulong> localContainerC = stackalloc ulong[ContainerCapacity];
+        Span<ulong> localContainerD = stackalloc ulong[ContainerCapacity];
 
         while (true)
         {
@@ -480,23 +647,23 @@ public class LimeDeencryptor
             if ((localContainerB[0] & 1) != 0)
             {
                 localContainerA.CopyTo(localContainerC);
-                EncryptionFirst(ref localContainerC, containerA);
+                EncryptionFirst(localContainerC, containerA);
                 localContainerC.CopyTo(localContainerD);
-                Limeghetti(ref localContainerD, containerC);
-                EncryptionFirst(ref localContainerD, containerC);
-                EncryptionThirdSub(localContainerC, localContainerD);
+                Limeghetti(localContainerD, containerC);
+                EncryptionFirst(localContainerD, containerC);
+                SubtractContainers(localContainerC, localContainerD);
                 localContainerC.CopyTo(localContainerA);
             }
             containerA.CopyTo(localContainerC);
             containerA.CopyTo(localContainerD);
-            EncryptionFirst(ref localContainerC, localContainerD);
+            EncryptionFirst(localContainerC, localContainerD);
             localContainerC.CopyTo(localContainerD);
-            Limeghetti(ref localContainerD, containerC);
-            EncryptionFirst(ref localContainerD, containerC);
-            EncryptionThirdSub(localContainerC, localContainerD);
+            Limeghetti(localContainerD, containerC);
+            EncryptionFirst(localContainerD, containerC);
+            SubtractContainers(localContainerC, localContainerD);
             localContainerC.CopyTo(containerA);
             
-            for (var i = 0; i < CLengthMax - 1; i++)
+            for (var i = 0; i < ContainerCapacity - 1; i++)
             {
                 localContainerB[i] >>= 1;
                 localContainerB[i] |= localContainerB[i + 1] << 63;
@@ -509,9 +676,9 @@ public class LimeDeencryptor
 
         static bool LoopBreaker(ReadOnlySpan<ulong> containerLeft, ReadOnlySpan<ulong> containerRight)
         {
-            var cLength = QueueLength(containerLeft);
+            var cLength = LastNonZeroIndexZeroBased(containerLeft);
             if (cLength == 0) return true;
-            for (var i = CLengthMax; i > 0; i--)
+            for (var i = ContainerCapacity; i > 0; i--)
                 if (containerLeft[i - 1] != containerRight[i - 1])
                     return false;
             return true;
@@ -543,7 +710,7 @@ public class LimeDeencryptor
     /// </summary>
     /// <param name="containerA"></param>
     /// <param name="containerB"></param>
-    private void LimeChecksum(ref Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
+    private void LimeChecksum(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
         
         var laps = (containerB.Length * sizeof(ulong) - 137) / 136 + 1;
@@ -552,22 +719,22 @@ public class LimeDeencryptor
             for (var y = 0; y < 17; y++)
                 containerA[y] ^= containerB[i * 17 + y];
 
-            Limerousel(ref containerA);
+            Limerousel(containerA);
         }
 
         containerA[0] ^= containerB[^2];
         containerA[1] ^= containerB[^1];
         containerA[2] ^= 6;
-        containerA[16] ^= BitMaskPattern;
+        containerA[16] ^= 0x8000000000000000;
 
-        Limerousel(ref containerA);
+        Limerousel(containerA);
     }
 
     /// <summary>
     /// You spin me right 'round, baby, right 'round.
     /// </summary>
     /// <param name="containerA"></param>
-    private void Limerousel(ref Span<ulong> containerA)
+    private void Limerousel(Span<ulong> containerA)
     {
         const int laps = 5;
         Span<ulong> localContainer = stackalloc ulong[laps];
@@ -633,23 +800,23 @@ public class LimeDeencryptor
     public bool Limetree(Span<LimeDataSegment> segments, ulong steamId, Mode mode)
     {
         // load key into container
-        Span<ulong> cKey1 = stackalloc ulong[CLengthMax];
+        Span<ulong> cKey1 = stackalloc ulong[ContainerCapacity];
         _privateKey1.CopyTo(cKey1);
 
         // load steamID into container
-        Span<ulong> cSteamId = stackalloc ulong[CLengthMax];
+        Span<ulong> cSteamId = stackalloc ulong[ContainerCapacity];
         cSteamId[0] = NotSteamId(steamId);
         
-        Span<ulong> cHashPublicKeysResult = stackalloc ulong[CLengthMax];
+        Span<ulong> cHashPublicKeysResult = stackalloc ulong[ContainerCapacity];
         Span<Vector128<byte>> aesRoundKeys = stackalloc Vector128<byte>[2 * AesBlockLength + 1];
-        Span<ulong> checksumContainer = stackalloc ulong[ChecksumContainerLength];
+        Span<ulong> checksumContainer = stackalloc ulong[ChecksumContainerCapacity];
 
         // calculate header and seed
-        Span<ulong> cKeyType = stackalloc ulong[CLengthMax];
-        Span<ulong> cHeader = stackalloc ulong[CLengthMax];
-        Span<ulong> cLimeSeed = stackalloc ulong[CLengthMax];
-        Span<ulong> cHashedKeyPart = stackalloc ulong[CLengthMax];
-        Span<ulong> cRandomizer = stackalloc ulong[CLengthMax];
+        Span<ulong> cKeyType = stackalloc ulong[ContainerCapacity];
+        Span<ulong> cHeader = stackalloc ulong[ContainerCapacity];
+        Span<ulong> cLimeSeed = stackalloc ulong[ContainerCapacity];
+        Span<ulong> cHashedKeyPart = stackalloc ulong[ContainerCapacity];
+        Span<ulong> cRandomizer = stackalloc ulong[ContainerCapacity];
         var cRandomizerAsBytes = MemoryMarshal.Cast<ulong, byte>(cRandomizer);
         if (mode == Mode.Encrypt)
         {
@@ -677,8 +844,8 @@ public class LimeDeencryptor
                 {
                     // calculate hashed key
                     cLimeSeed.CopyTo(cHashedKeyPart);
-                    RandomizeSpan(ref cRandomizerAsBytes,sizeof(ulong));
-                    EncryptionFirst(ref cHashedKeyPart, cRandomizer);
+                    RandomizeSpan(cRandomizerAsBytes,sizeof(ulong));
+                    EncryptionFirst(cHashedKeyPart, cRandomizer);
                     // update header and hashed key
                     segments[i].HashedKeyBanks[j].Header = cHeader[..segments[i].HashedKeyBanks[j].Header.Length].ToArray();
                     segments[i].HashedKeyBanks[j].KeyFragment = cHashedKeyPart[..segments[i].HashedKeyBanks[j].KeyFragment.Length].ToArray();
@@ -686,17 +853,17 @@ public class LimeDeencryptor
 
                 // calculate and set a checksum of current segment
                 checksumContainer.Clear();
-                LimeChecksum(ref checksumContainer, dataAsUlongs);
+                LimeChecksum(checksumContainer, dataAsUlongs);
                 segments[i].SetSegmentChecksum(checksumContainer);
             }
 
             // hash public keys
-            HashPublicKeys(ref cHashPublicKeysResult, cKey1, cSteamId, segments[i].HashedKeyBanks);
+            HashPublicKeys(cHashPublicKeysResult, cKey1, cSteamId, segments[i].HashedKeyBanks);
 
             // create round keys from public keys
             aesRoundKeys.Clear();
             var cHashPublicKeysResultAsVector128Span = MemoryMarshal.Cast<ulong, Vector128<byte>>(cHashPublicKeysResult);
-            AesKeygen(ref aesRoundKeys, cHashPublicKeysResultAsVector128Span);
+            AesKeygen(aesRoundKeys, cHashPublicKeysResultAsVector128Span);
 
             // deencrypt SegmentData
             var dataAsVectors128 = MemoryMarshal.Cast<byte, Vector128<byte>>(dataAsBytes);
@@ -705,7 +872,7 @@ public class LimeDeencryptor
             // compare a newly calculated checksum with the old one on the first segment and break loop if not equal
             if (mode == Mode.Decrypt && i == 0)
             {
-                LimeChecksum(ref checksumContainer, dataAsUlongs);
+                LimeChecksum(checksumContainer, dataAsUlongs);
                 if (!segments[i].ValidateSegmentChecksum(checksumContainer)) return false;
             }
         }
@@ -720,32 +887,32 @@ public class LimeDeencryptor
     public bool LimepickSegment(LimeDataSegment limeSegment, ulong steamId)
     {
         // load key into container
-        Span<ulong> cKey1 = stackalloc ulong[CLengthMax];
+        Span<ulong> cKey1 = stackalloc ulong[ContainerCapacity];
         _privateKey1.CopyTo(cKey1);
 
         // load steamID into container
-        Span<ulong> cSteamId = stackalloc ulong[CLengthMax];
+        Span<ulong> cSteamId = stackalloc ulong[ContainerCapacity];
         cSteamId[0] = NotSteamId(steamId);
 
         // load segment data
         Span<byte> dataAsBytes = stackalloc byte[limeSegment.SegmentData.Length];
         limeSegment.SegmentData.CopyTo(dataAsBytes);
 
-        Span<ulong> cHashPublicKeysResult = stackalloc ulong[CLengthMax];
+        Span<ulong> cHashPublicKeysResult = stackalloc ulong[ContainerCapacity];
         Span<Vector128<byte>> aesRoundKeys = stackalloc Vector128<byte>[2 * AesBlockLength + 1];
 
         // hash public keys
-        HashPublicKeys(ref cHashPublicKeysResult, cKey1, cSteamId, limeSegment.HashedKeyBanks);
+        HashPublicKeys(cHashPublicKeysResult, cKey1, cSteamId, limeSegment.HashedKeyBanks);
         // create round keys from public keys
         var cHashPublicKeysResultAsVector128Span = MemoryMarshal.Cast<ulong, Vector128<byte>>(cHashPublicKeysResult);
-        AesKeygen(ref aesRoundKeys, cHashPublicKeysResultAsVector128Span);
+        AesKeygen(aesRoundKeys, cHashPublicKeysResultAsVector128Span);
         // deencrypt SegmentData
         var dataAsVectors128 = MemoryMarshal.Cast<byte, Vector128<byte>>(dataAsBytes);
         Deencrypt(dataAsVectors128, aesRoundKeys);
 
-        Span<ulong> checksumContainer = stackalloc ulong[ChecksumContainerLength];
+        Span<ulong> checksumContainer = stackalloc ulong[ChecksumContainerCapacity];
         var dataAsUlongs = MemoryMarshal.Cast<byte, ulong>(dataAsBytes);
-        LimeChecksum(ref checksumContainer, dataAsUlongs);
+        LimeChecksum(checksumContainer, dataAsUlongs);
         
         return limeSegment.ValidateSegmentChecksum(checksumContainer);
     }
