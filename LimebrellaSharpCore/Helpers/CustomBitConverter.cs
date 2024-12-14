@@ -1,7 +1,8 @@
-﻿// v2024-08-03 21:16:48
+﻿// v2024-12-15 12:16:48
 
 using System.Runtime.InteropServices;
 using System.Text;
+using static System.BitConverter;
 using static System.Globalization.NumberStyles;
 
 namespace LimebrellaSharpCore.Helpers;
@@ -60,7 +61,7 @@ public static class CustomBitConverter
     }
 
     /// <summary>
-    /// Read a structure from a BinaryReader
+    /// Read a structure from a BinaryReader.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="bin"></param>
@@ -74,6 +75,14 @@ public static class CustomBitConverter
 
         return ToStruct<T>(buff);
     }
+    /// <summary>
+    /// Read a structure from a Span&lt;byte&gt;.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="span"></param>
+    /// <returns></returns>
+    public static T? ReadStruct<T>(this Span<byte> span) where T : class
+        => ToStruct<T>(span.ToArray());
 
     /// <summary>
     /// Write a structure to a BinaryWriter.
@@ -88,29 +97,13 @@ public static class CustomBitConverter
     }
 
     /// <summary>
-    /// Turns a hex string into a byte array.
+    /// Write a structure to a byte array.
     /// </summary>
-    /// <param name="hex"></param>
-    /// <returns></returns>
-    public static byte[] ToBytes(this string hex)
-    {
-        hex = hex.Replace(" ", "").Replace("-", "");
-        var data = new byte[hex.Length / 2];
-        for (var i = 0; i < hex.Length; i += 2)
-        {
-            data[i / 2] = byte.Parse(hex.Substring(i, 2), HexNumber);
-        }
-        return data;
-    }
-
-    /// <summary>
-    /// Turns a byte array into a hex string.
-    /// </summary>
-    /// <param name="bytes"></param>
-    /// <returns></returns>
-    public static string ToHexString(this byte[] bytes) =>
-        BitConverter.ToString(bytes).Replace("-", string.Empty);
-
+    /// <typeparam name="T"></typeparam>
+    /// <param name="obj"></param>
+    public static byte[] WriteStruct<T>(this T obj) where T : class
+        => ToBytes(obj);
+    
     /// <summary>
     /// Turns a hex string into an ulong array.
     /// </summary>
@@ -150,7 +143,23 @@ public static class CustomBitConverter
     }
 
     /// <summary>
-    /// Turns a ulong into a hex string.
+    /// Turns a hex string into a byte array.
+    /// </summary>
+    /// <param name="hex"></param>
+    /// <returns></returns>
+    public static byte[] ToByteArray(this string hex)
+    {
+        hex = hex.Replace(" ", "").Replace("-", "");
+        var data = new byte[hex.Length / 2];
+        for (var i = 0; i < hex.Length; i += 2)
+        {
+            data[i / 2] = byte.Parse(hex.Substring(i, 2), HexNumber);
+        }
+        return data;
+    }
+
+    /// <summary>
+    /// Turns an ulong into a hex string.
     /// </summary>
     /// <param name="int64"></param>
     /// <param name="isBigEndian"></param>
@@ -163,7 +172,7 @@ public static class CustomBitConverter
         return string.Join(" ", iEnum.ToArray());
     }
     /// <summary>
-    /// Turns a ulong into a hex string.
+    /// Turns an ulong into a hex string.
     /// </summary>
     /// <param name="int64"></param>
     /// <param name="isBigEndian"></param>
@@ -180,7 +189,7 @@ public static class CustomBitConverter
     public static string NumberToAsciiString<T>(this T number)
     {
         // convert number to ulong
-        var hexString = BitConverter.ToString(BitConverter.GetBytes(Convert.ToUInt64(number)));
+        var hexString = BitConverter.ToString(GetBytes(Convert.ToUInt64(number)));
         // remove hyphens and trailing "-00"
         hexString = hexString.Replace("-00", string.Empty).Replace("-", string.Empty);
 

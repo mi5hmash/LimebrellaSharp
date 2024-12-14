@@ -1,0 +1,18 @@
+﻿@inject IJSRuntime Js
+@inject SuperUserService SuService
+
+<a @onclick="HandleSuperUserActivationClick" class="text-decoration-none @Class">@Content</a>
+
+@code {
+    [Parameter]
+    public string Content { get; set; } = string.Empty; 
+
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+    
+    private async Task HandleSuperUserActivationClick()
+    {
+        var test = await Js.InvokeAsync<bool>("handleSuperUserActivationClick");
+        if (test) await SuService.ActivateSuperUser();
+    }
+}

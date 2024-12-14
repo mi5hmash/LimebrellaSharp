@@ -1,0 +1,31 @@
+﻿@inject LanguageManagerService LanguageManager
+
+@if (_componentInitialized)
+{
+    <select class="form-select" @bind:get="_selectedLanguage" @bind:set="OnSelectedLanguageChanged!">
+        @foreach (var language in _languages!)
+        {
+            <option value="@language.Key">@language.Value</option>
+        }
+    </select>
+}
+
+@code {
+    private List<KeyValuePair<string, string>>? _languages;
+    private string? _selectedLanguage;
+
+    private bool _componentInitialized;
+    protected override async Task OnInitializedAsync()
+    {
+        _languages = await LanguageManager.GetLanguageSelectorOptionsAsync();
+        _selectedLanguage = await LanguageManager.GetStoredAppLanguageAsync();
+        // Mark component as initialized
+        _componentInitialized = true;
+    }
+
+    private async Task OnSelectedLanguageChanged(string value)
+    {
+        _selectedLanguage = value;
+        await LanguageManager.SetAppLanguageAsync(value);
+    }
+}

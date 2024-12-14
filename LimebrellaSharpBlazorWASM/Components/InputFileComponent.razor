@@ -1,0 +1,68 @@
+﻿@inject IJSRuntime Js
+@inject IStringLocalizer<Resources.InputFileComponent> Loc
+
+<div>
+    <label for="@Id" class="form-label">@Loc["LabelDesc"]</label>
+    <InputFile @ref="_fileInput" OnChange="HandleInputFileChange" id="@Id" disabled="@Disabled" accept="@FileExtension" class="@($"form-control {_validationClass}")" />
+    <small class="valid-feedback">@_validFeedback</small>
+    <small class="invalid-feedback">@_invalidFeedback</small>
+</div>
+
+@code {
+    /// <summary>
+    /// Example: single ".bin"; multiple ".bin, .zip, .jpg";
+    /// </summary>
+    [Parameter] public string FileExtension { get; set; } = string.Empty;
+
+    [Parameter] public long MaxFileSize { get; set; } = uint.MaxValue;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Id { get; set; }
+
+
+    public IBrowserFile File { get; private set; } = null!;
+
+    private InputFile _fileInput = null!;
+    private string[] _extensions = [];
+    private string _validationClass = "";
+    private string _invalidFeedback = "";
+    private string _validFeedback = "";
+
+    protected override void OnInitialized()
+    {
+        _extensions = FileExtension.Split(", ");
+        Id ??= Guid.NewGuid().ToString("N");
+    }
+
+    private async Task HandleInputFileChange(InputFileChangeEventArgs e)
+    {
+        var inputFile = e.File;
+        if (_extensions.Any(extension => inputFile.Name.EndsWith(extension))) File = inputFile;
+        await ValidateInputFile();
+    }
+
+    private async Task ValidateInputFile()
+    {
+        var isValid = false;
+        _invalidFeedback = "";
+        _validFeedback = "";
+        while (true)
+        {
+            if (File.Size > MaxFileSize)
+            {
+                _invalidFeedback = @Loc["TotalFileSizeEx", MaxFileSize];
+                break;
+            }
+            isValid = true;
+            _validFeedback = @Loc["FileLoaded", File.Name];
+            break;
+        }
+        _validationClass = isValid ? "is-valid" : "is-invalid";
+        if (!isValid) await ResetInputFileField();
+    }
+
+    private async Task ResetInputFileField()
+    {
+        File = null!;
+        await Js.InvokeVoidAsync("resetFileInput", _fileInput.Element);
+    }
+}

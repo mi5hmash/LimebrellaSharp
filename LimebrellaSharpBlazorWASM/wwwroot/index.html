@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Limebrella Sharp</title>
+    <!-- If you would like to publish on GitHub Pages:
+    - Set href="/<repo_name>/";
+    - Create an empty ".nojekyll"" file in root directory;
+    - Make a copy of an "index.html" file and rename it to "404.html"; -->
+    <base href="/" />
+    <!-- Toggle theme without flickering -->
+    <script src="js/themeManager.min.js?v=20240728_1"></script>
+    <!-- Set language -->
+    <script src="js/languageManager.min.js?v=20240728_1"></script>
+    <!-- FileInput manager -->
+    <script src="js/fileInputManager.min.js?v=20240728_2"></script>
+    <!-- SuperUser manager -->
+    <script src="js/superUserManager.min.js?v=20240728_3"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css?v=20240728_1" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap-icons.min.css?v=20240728_1" />
+    <link rel="stylesheet" href="css/app.min.css?v=20240629_1" />
+    <link href="LimebrellaSharpBlazorWASM.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div class="loading-screen">
+            <div class="loading-screen-logo"></div>
+            <div class="loading-screen-progress"></div>
+        </div>
+    </div>
+
+    <!-- Custom blazor-error-ui -->
+    <div id="blazor-error-ui" class="alert alert-danger alert-dismissible fade show fixed-bottom mb-0" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        <span>An unhandled error has occurred.</span>  <a href="" class="alert-link">Reload Page</a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" title="Close"></button>
+    </div>
+
+    <!-- JavaScript scripts -->
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+</body>
+
+</html>

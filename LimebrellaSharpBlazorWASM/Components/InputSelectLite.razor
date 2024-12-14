@@ -1,0 +1,23 @@
+﻿<select class="form-select" @bind:get="SelectedValue" @bind:set="OnSelectedValueChanged">
+    @foreach (var option in Options)
+    {
+        <option value="@option.Key">@option.Value</option>
+    }
+</select>
+
+@code {
+    [Parameter]
+    public List<KeyValuePair<string, string>> Options { get; set; } = [];
+
+    [Parameter]
+    public string? SelectedValue { get; set; }
+
+    [Parameter]
+    public EventCallback<string> SelectedValueChanged { get; set; }
+    
+    private async Task OnSelectedValueChanged(string? value)
+    {
+        SelectedValue = value;
+        await SelectedValueChanged.InvokeAsync(value);
+    }
+}

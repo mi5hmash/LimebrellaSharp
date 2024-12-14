@@ -1,0 +1,95 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<AssemblyVersion>0.0.0.1</AssemblyVersion>
+		<FileVersion>$(AssemblyVersion)</FileVersion>
+		<Version>$(AssemblyVersion)</Version>
+		<Authors>Mi5hmasH</Authors>
+		<Company>$(Authors)</Company>
+		<Description>This app can do anything.</Description>
+		<BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<Optimize>False</Optimize>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.Extensions.Localization" Version="9.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="wwwroot\resources\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\LimebrellaSharpCore\LimebrellaSharpCore.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Resources\About.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>About.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Resources\Home.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Home.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Resources\InputFileComponent.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>InputFileComponent.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Resources\LoadingComponent.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>LoadingComponent.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Resources\Settings.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Settings.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Resources\ThemeSelector.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>ThemeSelector.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <EmbeddedResource Update="Resources\About.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>About.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Resources\Home.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Home.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Resources\InputFileComponent.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>InputFileComponent.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Resources\LoadingComponent.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>LoadingComponent.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Resources\Settings.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Resources\ThemeSelector.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>ThemeSelector.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+	
+</Project>

@@ -1,0 +1,30 @@
+﻿<div class="card">
+    <div class="card-body">
+        <div class="d-flex gap-3 align-items-center">
+            <div class="m-1 flex-grow-1">
+                <i class="@IconClass"></i>
+                <span class="h6">@Title</span>
+            </div>
+            <div class="m-1">
+                @ChildContent
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _iconClass = null!;
+
+    [Parameter]
+    public string IconClass
+    {
+        get => _iconClass;
+        set => _iconClass = value.BootstrapIcon();
+    }
+    
+    [Parameter] 
+    public string Title { get; set; } = null!;
+
+    [Parameter] 
+    public RenderFragment ChildContent { get; set; } = null!;
+}

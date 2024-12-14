@@ -1,0 +1,32 @@
+﻿@inject ThemeManagerService ThemeManager
+@inject IStringLocalizer<Resources.ThemeSelector> Loc
+
+@if (_componentInitialized)
+{
+    <select class="form-select" @bind:get="_selectedTheme" @bind:set="OnSelectedThemeChanged!">
+        @foreach (var theme in _themes!)
+        {
+            <option value="@theme.Key">@theme.Value</option>
+        }
+    </select>
+}
+
+@code {
+    private List<KeyValuePair<string, string>>? _themes;
+    private string? _selectedTheme;
+
+    private bool _componentInitialized;
+    protected override async Task OnInitializedAsync()
+    {
+        _themes = await ThemeManager.GetThemeSelectorOptions(Loc["Dark"], Loc["Light"]);
+        _selectedTheme = await ThemeManager.GetStoredAppThemeAsync();
+        // Mark component as initialized
+        _componentInitialized = true;
+    }
+
+    private async Task OnSelectedThemeChanged(string value)
+    {
+        _selectedTheme = value;
+        await ThemeManager.SetAppThemeAsync(value);
+    }
+}

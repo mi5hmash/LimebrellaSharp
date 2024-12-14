@@ -1,0 +1,16 @@
+﻿@inject IStringLocalizer<Resources.LoadingComponent> Loc
+
+<div class="text-center">
+    <div class="spinner-border" role="status"></div>
+    <p class="h5">@Message</p>
+</div>
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Message ??= Loc["ComponentLoading"];
+    }
+}

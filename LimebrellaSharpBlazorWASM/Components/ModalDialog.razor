@@ -1,0 +1,48 @@
+﻿@inject IStringLocalizer<Resources.ModalDialog> Loc
+
+<div class="modal fade" id="@ModalId" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="@($"{ModalId}Label")" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="@($"{ModalId}Label")">@Title</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@Loc["Close"]"></button>
+            </div>
+            <div class="modal-body">
+                @Body
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@CancelLabel</button>
+                <button type="button" class="btn btn-@ConfirmButtonColor.AsString()" data-bs-dismiss="modal" @onclick="OnConfirm">@ConfirmLabel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] 
+    public string ModalId { get; set; } = $"modal{Random.Shared.Next(0, int.MaxValue)}";
+
+    [Parameter] 
+    public string Title { get; set; } = null!;
+
+    [Parameter] 
+    public string Body { get; set; } = null!;
+    
+    [Parameter] 
+    public string? CancelLabel { get; set; }
+    
+    [Parameter] 
+    public string? ConfirmLabel { get; set; }
+
+    [Parameter] 
+    public BootstrapHelper.Color ConfirmButtonColor { get; set; } = BootstrapHelper.Color.Primary;
+
+    [Parameter] 
+    public EventCallback OnConfirm { get; set; }
+
+    protected override void OnInitialized()
+    {
+        CancelLabel ??= Loc["Close"];
+        ConfirmLabel ??= Loc["Confirm"];
+    }
+}

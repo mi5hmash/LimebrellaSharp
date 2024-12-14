@@ -1,0 +1,19 @@
+﻿@page "/about"
+@inject IStringLocalizer<Resources.About> Loc
+
+<PageTitle>@Loc["PageTitle"]</PageTitle>
+
+<h1 class="mb-3">@Loc["PageTitle"]</h1>
+
+<div class="card">
+    <div class="card-body">
+        <div class="mb-2">
+            <p class="mb-1"><span class="h5">@AppInfo.Title</span> <SuperUserActivator Content="@($"v{AppInfo.Version}")" Class="text-body-secondary" /></p>
+            <p class="text-body-secondary">@Loc["MadeBy"] <strong>@AppInfo.Author</strong> @Loc["WithLove"]!</p>
+        </div>
+        <div class="mb-2">
+            <p class="mb-1">@Loc["Description"]</p>
+            <p class="text-body-secondary">@Loc["AppDescription"]</p>
+        </div>
+    </div>
+</div>

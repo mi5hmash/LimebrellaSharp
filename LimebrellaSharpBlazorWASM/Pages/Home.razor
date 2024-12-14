@@ -1,0 +1,292 @@
+﻿@page "/"
+@using System.Security.Cryptography
+@using LimebrellaSharpBlazorWASM.Models
+@using LimebrellaSharpCore.Helpers
+@using LimebrellaSharpCore.Models.DSSS.Lime
+@inject IJSRuntime Js
+@inject IStringLocalizer<Resources.Home> Loc
+@inject WebStorageManagerService WebStorageManager
+@inject SuperUserService SuService
+@inject SimpleLoggerWasmService Logger
+
+<PageTitle>@Loc["PageTitle"]</PageTitle>
+
+<h1 class="mb-3">@Loc["PageTitle"]</h1>
+
+@if (!_pageInitialized)
+{
+    <LoadingComponent />
+}
+else
+{
+    <div class="row mb-3">
+        <InputFilesComponent @ref="_inputFiles" MinFilesCount="1" MaxFilesCount="50" MaxFileSize="uint.MaxValue" FileExtension=".bin" Disabled="@_isBusy" />
+    </div>
+
+    <div class="input-group mb-3">
+        <div class="form-floating">
+            <input id="steamIdInput" class="form-control" type="number" min="0" max="uint.MaxValue" @bind="_steamIdModel.SteamIdInput" disabled="@_isBusy" />
+            <label for="steamIdInput">SteamID (INPUT)</label>
+        </div>
+        <button class="btn btn-primary" @onclick="InterchangeSteamId" disabled="@_isBusy">
+            <i class="@("arrow-left-right".BootstrapIcon())"></i>
+        </button>
+        <div class="form-floating">
+            <input id="steamIdOutput" class="form-control" type="number" min="0" max="uint.MaxValue" @bind="_steamIdModel.SteamIdOutput" disabled="@_isBusy" />
+            <label for="steamIdOutput">SteamID (OUTPUT)</label>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between flex-wrap">
+        <div>
+            @if (_isSuperUser)
+            {
+                <div class="me-4">
+                    <button class="btn btn-primary mb-2 me-1" disabled="@_isBusy" @onclick="UnpackAllAsync">Unpack</button>
+                    <button class="btn btn-primary mb-2 me-1" disabled="@_isBusy" @onclick="PackAllAsync">Pack</button>
+                </div>
+            }
+        </div>
+        <div>
+            <button class="btn btn-danger mb-2 me-2" hidden="@(!_isBusy)" @onclick="AbortOperation">Abort</button>
+            <button class="btn btn-primary mb-2" @onclick="Test">Resign</button>
+        </div>
+    </div>
+}
+
+@code {
+
+    private void Test()
+    {
+        Sha1HashFromByteArray([21, 22]);
+    }
+
+    private bool _isBusy;
+    private bool _isSuperUser;
+    private bool _pageInitialized;
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize WebStorageManager
+        await WebStorageManager.InitializeAsync();
+        // Get SuperUser status
+        _isSuperUser = await SuService.GetSuperUserStatus();
+        // Mark the page as initialized
+        _pageInitialized = true;
+    }
+
+    #region SteamID
+
+    private SteamIdModel _steamIdModel = new();
+
+    private Task InterchangeSteamId()
+    {
+        if (!_isBusy) _steamIdModel.SteamIdInterchange();
+        return Task.CompletedTask;
+    }
+
+    #endregion
+
+    #region IO
+
+    private InputFilesComponent _inputFiles = null!;
+
+    private async Task DownloadZipFile()
+    {
+        if (_isBusy || _inputFiles.Files.Count < _inputFiles.MinFilesCount) return;
+        _isBusy = true;
+
+        List<ZipEntry> zipEntries = [];
+        foreach (var file in _inputFiles.Files)
+        {
+            byte[] fileBytes;
+            // Read the file into a byte array
+            using (MemoryStream ms = new())
+            {
+                await file.OpenReadStream(maxAllowedSize: uint.MaxValue).CopyToAsync(ms);
+                fileBytes = ms.ToArray();
+            }
+
+            var userId = 1234;
+            var steamAppId = 2842890;
+            zipEntries.Add(new ZipEntry(fileBytes, @$"{userId}\{steamAppId}\remote\win64_save\{file.Name}"));
+        }
+
+        var zipBytes = await ZipDeCompressor.ZipCompressAsync(zipEntries);
+        var fileName = $"limebrella_{DateTime.Now:yyyyMMddHHmmssfff}.zip";
+
+        // Trigger download using JS interop
+        await Js.InvokeVoidAsync("saveAsFile", fileName, zipBytes);
+        _isBusy = false;
+    }
+
+    #endregion
+
+
+
+
+
+
+
+
+
+
+
+    private CancellationTokenSource _cts = new();
+    private readonly LimeDeencryptor _deencryptor = new();
+
+    /// <summary>
+    /// Aborts currently running operation and lifts the Busy Lock.
+    /// </summary>
+    public void AbortOperation()
+    {
+        if (!_isBusy) return;
+
+        _cts.Cancel();
+        _cts.Dispose();
+        _isBusy = false;
+    }
+
+    private enum OperationType
+    {
+        Packing,
+        Unpacking,
+        Resigning
+    }
+
+    public async Task UnpackAllAsync()
+        => await ProcessAsyncOperation(OperationType.Unpacking);
+
+    public async Task PackAllAsync()
+        => await ProcessAsyncOperation(OperationType.Packing);
+
+    public async Task ResignAllAsync()
+        => await ProcessAsyncOperation(OperationType.Resigning);
+
+    private async Task ProcessAsyncOperation(OperationType operationType)
+    {
+        if (_isBusy) return;
+        _isBusy = true;
+        _cts = new CancellationTokenSource();
+        try
+        {
+            Logger.Log(ISimpleLogger.LogSeverity.Information, $"{operationType} has started.");
+            Logger.Log(ISimpleLogger.LogSeverity.Information,
+                $"Provided Steam32_IDs: INPUT={_steamIdModel.SteamIdInput}, OUTPUT={_steamIdModel.SteamIdOutput}");
+            Logger.Log(ISimpleLogger.LogSeverity.Information, "ID | FileName | MD5_Checksum | IsEncrypted");
+            await AsyncLimeFileOperation(operationType);
+            Logger.Log(ISimpleLogger.LogSeverity.Information, $"{operationType} complete.");
+        }
+        catch (OperationCanceledException)
+        {
+            var message = $"{operationType} was interrupted by the user.";
+            Logger.Log(ISimpleLogger.LogSeverity.Warning, message);
+        }
+        finally
+        {
+            Logger.Flush();
+        }
+        AbortOperation();
+    }
+
+    private async Task AsyncLimeFileOperation(OperationType operationType)
+    {
+        var processedFiles = 0;
+        var progress = 0;
+        List<ZipEntry> zipEntries = [];
+        foreach (var inputFile in _inputFiles.Files)
+        {
+            // try to load file
+            byte[] fileDataInput;
+            using (MemoryStream ms = new())
+            {
+                await inputFile.OpenReadStream(maxAllowedSize: uint.MaxValue).CopyToAsync(ms);
+                fileDataInput = ms.ToArray();
+            }
+            var dsssFile = new LimeFile(_deencryptor, inputFile.Name);
+            var boolResult = dsssFile.SetFileData(fileDataInput);
+            if (!boolResult.Result)
+            {
+                Logger.Log(ISimpleLogger.LogSeverity.Error, $"I_{dsssFile.FileName} -> Couldn't load the file. {boolResult.Description}");
+                goto ORDER_66;
+            }
+
+            // log info about the input file
+            Logger.LogDebug(ISimpleLogger.LogSeverity.Information, $"I_{dsssFile.FileName} | {Sha1HashFromByteArray(fileDataInput)} | {dsssFile.IsEncrypted}");
+
+            // check operation type and adjust to it
+            var result = false;
+            switch (operationType)
+            {
+                case OperationType.Resigning:
+                    if (dsssFile.IsEncrypted)
+                    {
+                        dsssFile.Key = _steamIdModel.SteamIdInput;
+                        result = dsssFile.DecryptSegments();
+                        if (!result) break;
+                    }
+                    dsssFile.Key = _steamIdModel.SteamIdOutput;
+                    dsssFile.EncryptSegments();
+                    break;
+                case OperationType.Unpacking:
+                    if (!dsssFile.IsEncrypted)
+                    {
+                        Logger.Log(ISimpleLogger.LogSeverity.Warning, $"I_{dsssFile.FileName} -> The file is already decrypted.");
+                        goto ORDER_66;
+                    }
+                    dsssFile.Key = _steamIdModel.SteamIdInput;
+                    result = dsssFile.DecryptSegments();
+                    break;
+                case OperationType.Packing:
+                default:
+                    if (dsssFile.IsEncrypted)
+                    {
+                        Logger.Log(ISimpleLogger.LogSeverity.Warning, $"I_{dsssFile.FileName} -> The file is already encrypted.");
+                        goto ORDER_66;
+                    }
+                    dsssFile.Key = _steamIdModel.SteamIdOutput;
+                    result = dsssFile.EncryptSegments();
+                    break;
+            }
+            if (!result)
+            {
+                Logger.Log(ISimpleLogger.LogSeverity.Warning, $"I_{dsssFile.FileName} -> The provided SteamID does not work for this file.");
+                goto ORDER_66;
+            }
+
+            // add ZipEntry
+            var fileDataOutput = operationType switch
+            {
+                OperationType.Unpacking => dsssFile.GetFileSegments(),
+                _ => dsssFile.GetFileData(),
+            };
+            zipEntries.Add(new ZipEntry(fileDataOutput.ToArray(), $"{dsssFile.FileName}.{LimeFile.Extension}"));
+            processedFiles++;
+
+            // log info about the output file
+            Logger.LogDebug(ISimpleLogger.LogSeverity.Information, $"O_{dsssFile.FileName} | {Sha1HashFromByteArray(fileDataOutput)} | {dsssFile.IsEncrypted}");
+
+        ORDER_66:
+            Interlocked.Increment(ref progress);
+        }
+        
+        // save ZipEntries
+        var zipBytes = await ZipDeCompressor.ZipCompressAsync(zipEntries);
+        var fileName = $"limebrella_{DateTime.Now:yyyyMMddHHmmssfff}.zip";
+        // Trigger download using JS interop
+        await Js.InvokeVoidAsync("saveAsFile", fileName, zipBytes);
+
+        var message = $"{operationType} done. Number of processed files: {processedFiles}.";
+        Logger.Log(ISimpleLogger.LogSeverity.Information, message);
+    }
+
+    /// <summary>
+    /// Calculates SHA1 hash from the given <paramref name="data"/>.
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public static string Sha1HashFromByteArray(ReadOnlySpan<byte> data)
+    {
+        var hash = SHA1.HashData(data);
+        return Convert.ToHexString(hash);
+    }
+}

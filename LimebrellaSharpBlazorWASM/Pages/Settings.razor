@@ -1,0 +1,51 @@
+﻿@page "/settings"
+@inject WebStorageManagerService WebStorageManager
+@inject IStringLocalizer<Resources.Settings> Loc
+
+<PageTitle>@Loc["PageTitle"]</PageTitle>
+
+@if (!_pageInitialized)
+{
+    <LoadingComponent />
+}
+else
+{
+    <h1 class="mb-3">@Loc["PageTitle"]</h1>
+
+    <div class="d-flex flex-column gap-3 flex-wrap">
+        
+        <!-- Language Section -->
+        <SettingsCard IconClass="globe" Title="@Loc["Language"]">
+            <LanguageSelector />
+        </SettingsCard>
+
+        <!-- Theme Section -->
+        <SettingsCard IconClass="circle-half" Title="@Loc["Theme"]">
+            <ThemeSelector />
+        </SettingsCard>
+
+        <!-- Purge Section -->
+        <SettingsCard IconClass="trash-fill" Title="@Loc["Purge"]">
+            @code {
+                private const string ModalNamePurge = "modalPurge";
+                private async Task ClearStoredSettings()
+                    => await WebStorageManager.ClearWebStorageAsync(true);
+            }
+            <!-- Button trigger modal -->
+            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#@ModalNamePurge">@Loc["ClearSettings"]</button>
+            <!-- Modal -->
+            <ModalDialog ModalId="@ModalNamePurge" Title="@Loc["AreYouSure"]" Body="@Loc["ClearSettingsModalDescription"]" ConfirmButtonColor="BootstrapHelper.Color.Danger" OnConfirm="ClearStoredSettings" />
+        </SettingsCard>
+    </div>
+}
+
+@code {
+    private bool _pageInitialized;
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize WebStorageManager
+        await WebStorageManager.InitializeAsync();
+        // Mark the page as initialized
+        _pageInitialized = true;
+    }
+}

@@ -1,0 +1,53 @@
+﻿@inherits LayoutComponentBase
+
+<style>
+    .nb-brand {
+        margin-right: 8px;
+        font-size: 14px;
+    }
+        .nb-brand img {
+            height: 32px;
+            margin-right: 4px;
+        }
+</style>
+
+<header class="navbar navbar-expand-lg sticky-top bg-primary mb-3" style="border-radius: 0 0 8px 8px;">
+    <nav class="container-xxl flex-wrap flex-lg-nowrap" aria-label="Navigation bar">
+        <a class="nb-brand fw-bold text-decoration-none text-nowrap text-white" href="/">
+            <img src="resources\logo.svg" alt="App Logo" class="sb-logo-img">
+            Limebrella Sharp
+        </a>
+        <div>
+            <NavLink class="text-white mx-1" href="about" Match="NavLinkMatch.All" title="About">
+                <i class="@("question-circle".BootstrapIcon())"></i>
+            </NavLink>
+            <NavLink class="text-white mx-1" href="settings" Match="NavLinkMatch.All" title="Settings">
+                <i class="@("gear-fill".BootstrapIcon())"></i>
+            </NavLink>
+        </div>
+    </nav>
+</header>
+@* Page Content *@
+<main>
+    <div class="container-xxl">
+        @* Exception Handler *@
+        <CustomErrorBoundary @ref="_errorBoundary" Context="Exception">
+            <ChildContent>
+                @Body
+            </ChildContent>
+            <ErrorContent>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <span class="fw-bold">@Exception.GetType():</span> @Exception.Message
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" title="Recover" @onclick="@_errorBoundary.Recover"></button>
+                </div>
+            </ErrorContent>
+        </CustomErrorBoundary>
+    </div>
+</main>
+
+@code
+{
+    // Code for Exception Handler
+    private ErrorBoundary _errorBoundary = new();
+}
