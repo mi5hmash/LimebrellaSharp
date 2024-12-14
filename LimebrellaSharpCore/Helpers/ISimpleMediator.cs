@@ -35,7 +35,7 @@ public interface ISimpleMediator
     }
 
     /// <summary>
-    /// Specifies type of a dialog.
+    /// Specifies type of dialog.
     /// </summary>
     public enum DialogType
     {

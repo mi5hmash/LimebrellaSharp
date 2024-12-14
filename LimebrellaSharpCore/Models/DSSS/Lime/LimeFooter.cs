@@ -3,7 +3,7 @@
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 0x8C)]
-public class DsssLimeFooter
+public class LimeFooter
 {
     public const int SaltSize = 0x80;
 
@@ -24,16 +24,16 @@ public class DsssLimeFooter
     public uint Signature { get; set; } = 0x7856_3412;
 
     /// <summary>
-    /// Create a parameter-less <see cref="DsssLimeFooter"/>.
+    /// Create a parameter-less <see cref="LimeFooter"/>.
     /// </summary>
-    public DsssLimeFooter() { }
+    public LimeFooter() { }
 
     /// <summary>
-    /// Create a <see cref="DsssLimeFooter"/> with given parameters.
+    /// Create a <see cref="LimeFooter"/> with given parameters.
     /// </summary>
     /// <param name="decryptedDataLength"></param>
     /// <param name="signature"></param>
-    public DsssLimeFooter(long decryptedDataLength, uint signature)
+    public LimeFooter(long decryptedDataLength, uint signature)
     {
         DecryptedDataLength = decryptedDataLength;
         Signature = signature;

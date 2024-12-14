@@ -1,4 +1,4 @@
-﻿namespace LimebrellaSharp
+﻿namespace LimebrellaSharpWinforms
 {
     partial class MainForm
     {
@@ -122,7 +122,7 @@
             // 
             // pb_AppIcon
             // 
-            pb_AppIcon.Image = Properties.Resources.Limebrella_Sharp_Icon_x256;
+            pb_AppIcon.Image = (Image)resources.GetObject("pb_AppIcon.Image");
             pb_AppIcon.Location = new Point(386, 12);
             pb_AppIcon.Name = "pb_AppIcon";
             pb_AppIcon.Size = new Size(112, 117);
@@ -226,18 +226,18 @@
             versionLabel.Name = "versionLabel";
             versionLabel.Size = new Size(46, 15);
             versionLabel.TabIndex = 14;
-            versionLabel.Text = "v1.2.1.0";
+            versionLabel.Text = "v2.0.0.0";
             // 
             // authorLabel
             // 
             authorLabel.AutoSize = true;
             authorLabel.Cursor = Cursors.Hand;
             authorLabel.Font = new Font("Segoe UI", 7F);
-            authorLabel.Location = new Point(423, 145);
+            authorLabel.Location = new Point(410, 145);
             authorLabel.Name = "authorLabel";
-            authorLabel.Size = new Size(75, 12);
+            authorLabel.Size = new Size(87, 12);
             authorLabel.TabIndex = 15;
-            authorLabel.Text = "Mi5hmasH 2024";
+            authorLabel.Text = "Mi5hmasH © 2025";
             authorLabel.TextAlign = ContentAlignment.MiddleRight;
             authorLabel.Click += AuthorLabel_Click;
             // 
@@ -308,7 +308,7 @@
             superUserTrigger.Click += SuperUserTrigger_Click;
             superUserTrigger.DoubleClick += SuperUserTrigger_Click;
             // 
-            // Form1
+            // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -337,7 +337,7 @@
             FormBorderStyle = FormBorderStyle.FixedSingle;
             Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
-            Name = "Form1";
+            Name = "MainForm";
             Text = "Limebrella Sharp";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pb_AppIcon).EndInit();

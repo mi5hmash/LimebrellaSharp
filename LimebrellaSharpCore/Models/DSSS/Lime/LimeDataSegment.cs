@@ -3,7 +3,7 @@
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 0x1220)]
-public class DsssLimeDataSegment
+public class LimeDataSegment
 {
     public const int SegmentDataSize = 0x1000;
     public const int SegmentChecksumSize = 4;
@@ -13,7 +13,7 @@ public class DsssLimeDataSegment
     /// Banks containing parts of a hashed public key. 
     /// </summary>
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = HashedKeyBanksSize)]
-    public DsssLimeHashedKeyBank[] HashedKeyBanks = new DsssLimeHashedKeyBank[HashedKeyBanksSize];
+    public LimeHashedKeyBank[] HashedKeyBanks = new LimeHashedKeyBank[HashedKeyBanksSize];
     
     /// <summary>
     /// Raw encrypted data stored in this segment. The size is one page (4096 bytes). 
@@ -28,15 +28,15 @@ public class DsssLimeDataSegment
     public ulong[] SegmentChecksum = new ulong[SegmentChecksumSize];
 
     /// <summary>
-    /// Create a parameter-less <see cref="DsssLimeDataSegment"/>.
+    /// Create a parameter-less <see cref="LimeDataSegment"/>.
     /// </summary>
-    public DsssLimeDataSegment() { }
+    public LimeDataSegment() { }
 
     /// <summary>
-    /// Create a <see cref="DsssLimeDataSegment"/> with given parameters.
+    /// Create a <see cref="LimeDataSegment"/> with given parameters.
     /// </summary>
     /// <param name="segmentChecksum"></param>
-    public DsssLimeDataSegment(ulong[] segmentChecksum)
+    public LimeDataSegment(ulong[] segmentChecksum)
     {
         SegmentChecksum = segmentChecksum;
     }
@@ -47,7 +47,8 @@ public class DsssLimeDataSegment
     /// <param name="segmentChecksum"></param>
     public void SetSegmentChecksum(ulong[] segmentChecksum)
     {
-        for (var i = 0; i < SegmentChecksumSize; i++) SegmentChecksum[i] = segmentChecksum[i];
+        for (var i = 0; i < SegmentChecksumSize; i++) 
+            SegmentChecksum[i] = segmentChecksum[i];
     }
     public void SetSegmentChecksum(ReadOnlySpan<ulong> segmentChecksum)
     {
@@ -63,6 +64,20 @@ public class DsssLimeDataSegment
     {
         ReadOnlySpan<ulong> data = SegmentChecksum;
         return data.SequenceEqual(segmentChecksum[..SegmentChecksumSize]);
+    }
+
+    /// <summary>
+    /// Checks <see cref="SegmentChecksum"/> against <paramref name="segmentChecksum"/> asynchronously.
+    /// </summary>
+    /// <param name="segmentChecksum"></param>
+    /// <returns></returns>
+    public async Task<bool> ValidateSegmentChecksumAsync(ReadOnlyMemory<byte> segmentChecksum)
+    {
+        return await Task.Run(() =>
+        {
+            var segmentChecksumAsUlongs = MemoryMarshal.Cast<byte, ulong>(segmentChecksum.Span);
+            return ValidateSegmentChecksum(segmentChecksumAsUlongs);
+        });
     }
 
     /// <summary>
