@@ -1,53 +1,52 @@
-﻿using System.Runtime.InteropServices;
-using LimebrellaSharpCore.Models.DSSS.Lime;
+﻿using LimebrellaSharpCore.Models.DSSS.Lime;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
 using static System.Threading.Tasks.Task;
-using AesNative = System.Security.Cryptography.Aes;
 using Aes = System.Runtime.Intrinsics.X86.Aes;
+using AesNative = System.Security.Cryptography.Aes;
 
 namespace LimebrellaSharpCore.Helpers;
 
-public class LimeDeencryptor(int availableCpuThreads)
+public static class LimeDeencryptor
 {
     #region CONSTANTS
 
-    private const byte ContainerCapacityInUlongs = 0x20;
-    private const byte ChecksumContainerCapacityInBytes = 0x19;
     private const byte KeyType = 0x14;
+    private const byte ChecksumContainerCapacityInBytes = 0x19;
+    private const byte ContainerCapacityInUlongs = 0x20;
     
-    private static readonly ulong[] PrivateKey1 = "RjMzQjZGQjk3MkEwQjcyNTE1RTQ1QzM5MTgyOUUxODJBRDhBOUJEQzBBNjREMzQ0NEQ3OUM4MTBBQjg2MzcxNw=="
-        .Base64DecodeUtf8().ToUlongArray();
-    private static readonly ulong[] PrivateKey2 = "Rjk5REI3NUMzOUQwREI5MjBBNzJBRTFDOEM5NDcwQzE1NkM1NEQ2RTA1QjI2OUEyQTYzQzY0ODg1NUMzOUIwQg=="
-        .Base64DecodeUtf8().ToUlongArray();
-    private static readonly ulong[] PrivateKey3 = "RTY2RjU0NEFGQ0NFNjhDNUVGMDdCOUEwN0IyNzc1ODUzNDRBMURCNjEzNzZFODMxRjczQjlGQkQ1RjQ0RjcxNQ=="
-        .Base64DecodeUtf8().ToUlongArray();
-    private static readonly byte[] LimerouselRotationsTable = "MDEwMzA2MEEwRjE1MUMyNDJEMzcwMjBFMUIyOTM4MDgxOTJCM0UxMjI3M0QxNDJD"
-        .Base64DecodeUtf8().ToByteArray();
-    private static readonly byte[] LimerouselPositionsTable = "MEEwNzBCMTExMjAzMDUxMDA4MTUxODA0MEYxNzEzMEQwQzAyMTQwRTE2MDkwNjAx"
-        .Base64DecodeUtf8().ToByteArray();
-    private static readonly ulong[] LimerouselXorsTable = "MDEwMDAwMDAwMDAwMDAwMDgyODAwMDAwMDAwMDAwMDA4QTgwMDAwMDAwMDAwMDgwMDA4MDAwODAwMDAwMDA4MDhCODAwMDAwMDAwMDAwMDAwMTAwMDA4MDAwMDAwMDAwODE4MDAwODAwMDAwMDA4MDA5ODAwMDAwMDAwMDAwODA4QTAwMDAwMDAwMDAwMDAwODgwMDAwMDAwMDAwMDAwMDA5ODAwMDgwMDAwMDAwMDAwQTAwMDA4MDAwMDAwMDAwOEI4MDAwODAwMDAwMDAwMDhCMDAwMDAwMDAwMDAwODA4OTgwMDAwMDAwMDAwMDgwMDM4MDAwMDAwMDAwMDA4MDAyODAwMDAwMDAwMDAwODA4MDAwMDAwMDAwMDAwMDgwMEE4MDAwMDAwMDAwMDAwMDBBMDAwMDgwMDAwMDAwODA4MTgwMDA4MDAwMDAwMDgwODA4MDAwMDAwMDAwMDA4MDAxMDAwMDgwMDAwMDAwMDAwODgwMDA4MDAwMDAwMDgwMDEwMzA2MEEwRjE1MUMyNA=="
-        .Base64DecodeUtf8().ToUlongArray();
+    private static readonly ulong[] PrivateKey1 = "8ztvuXKgtyUV5Fw5GCnhgq2Km9wKZNNETXnIEKuGNxc=".FromBase64<ulong>();
+    private static readonly ulong[] PrivateKey2 = "+Z23XDnQ25IKcq4cjJRwwVbFTW4FsmmipjxkiFXDmws=".FromBase64<ulong>();
+    private static readonly ulong[] PrivateKey3 = "5m9USvzOaMXvB7mgeyd1hTRKHbYTdugx9zufvV9E9xU=".FromBase64<ulong>();
+
+    private static readonly byte[] LimerouselRotationsTable = "AQMGCg8VHCQtNwIOGyk4CBkrPhInPRQs".FromBase64<byte>();
+    private static readonly byte[] LimerouselPositionsTable = "CgcLERIDBRAIFRgEDxcTDQwCFA4WCQYB".FromBase64<byte>();
+    private static readonly ulong[] LimerouselXorsTable = "AQAAAAAAAACCgAAAAAAAAIqAAAAAAACAAIAAgAAAAICLgAAAAAAAAAEAAIAAAAAAgYAAgAAAAIAJgAAAAAAAgIoAAAAAAAAAiAAAAAAAAAAJgACAAAAAAAoAAIAAAAAAi4AAgAAAAACLAAAAAAAAgImAAAAAAACAA4AAAAAAAIACgAAAAAAAgIAAAAAAAACACoAAAAAAAAAKAACAAAAAgIGAAIAAAACAgIAAAAAAAIABAACAAAAAAAiAAIAAAACAAQMGCg8VHCQ=".FromBase64<ulong>();
+
     private static readonly ulong[] HeaderKey = CreateKey(KeyType);
 
-    private readonly int _availableCpuThreads = Math.Max(availableCpuThreads, 1);
-
-    #endregion
+    /// <summary>
+    /// Represents the AES encryption platform currently supported by the environment.
+    /// </summary>
+    private static readonly AesEncryptionPlatform CurrentAesEncryptionPlatform = GetSupportedAesEncryption();
     
-    #region HELPER FUNCS
+    #endregion
+
+    #region AES_ENCRYPTION_PLATFORM
 
     /// <summary>
-    /// Checks if Intrinsics methods used in this class are supported.
+    /// Determines whether both AES and SSE2 hardware intrinsics are supported on the current platform.
     /// </summary>
-    /// <returns></returns>
+    /// <returns><see langword="true"/> if both AES and SSE2 intrinsics are available; otherwise, <see langword="false"/>.</returns>
     public static bool IsIntrinsicsSupported()
         => Aes.IsSupported && Sse2.IsSupported;
 
     /// <summary>
-    /// Checks if Software Aes methods used in this class is supported.
+    /// Determines whether software-based AES encryption is supported on the current platform.
     /// </summary>
-    /// <returns></returns>
+    /// <returns><see langword="true"/> if software AES encryption is available; otherwise, <see langword="false"/>.</returns>
     public static bool IsSoftwareAesSupported()
     {
         try
@@ -60,14 +59,96 @@ public class LimeDeencryptor(int availableCpuThreads)
             return false;
         }
     }
+    
+    /// <summary>
+    /// Specifies the platform used to perform AES encryption operations.
+    /// </summary>
+    public enum AesEncryptionPlatform
+    {
+        Hardware,
+        Software
+    }
 
     /// <summary>
-    /// Multiplies two ulong values.
-    /// Function based on: https://gist.github.com/cocowalla/6070a53445e872f2bb24304712a3e1d2.
+    /// Determines the supported AES encryption platform. Performs hardware and software checks to identify if AES encryption is supported on the current platform and returns the corresponding platform type.
     /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns>High-order ulong value</returns>
+    /// <returns>AesEncryptionPlatform value indicating the supported platform.</returns>
+    /// <exception cref="PlatformNotSupportedException"></exception>
+    public static AesEncryptionPlatform GetSupportedAesEncryption()
+    {
+        // check for hardware support first
+        if (IsIntrinsicsSupported()) 
+            return AesEncryptionPlatform.Hardware;
+        // check for software support next
+        return IsSoftwareAesSupported() ? AesEncryptionPlatform.Software : throw new PlatformNotSupportedException();
+    }
+
+    /// <summary>
+    /// Deencrypts the specified input data using the provided encryption key and the selected AES encryption platform.
+    /// </summary>
+    /// <param name="inputData">The span of bytes containing the data to be deencrypted.</param>
+    /// <param name="encryptionKey">A span of bytes representing the encryption key and, for software mode, additional state information.</param>
+    private static void DeencryptData(Span<byte> inputData, Span<byte> encryptionKey)
+    {
+        switch (CurrentAesEncryptionPlatform)
+        {
+            case AesEncryptionPlatform.Hardware:
+                var dataAsVectors = MemoryMarshal.Cast<byte, Vector128<byte>>(inputData);
+                var encryptionKeyAsVectors = MemoryMarshal.Cast<byte, Vector128<byte>>(encryptionKey);
+                DeencryptIntrinsics(dataAsVectors, encryptionKeyAsVectors);
+                return;
+            default:
+            case AesEncryptionPlatform.Software:
+                var key = encryptionKey[..16].ToArray();
+                var state = encryptionKey[16..];
+                AesDeencryptSoftwareBased(inputData, key, state);
+                return;
+        }
+    }
+
+    /// <summary>
+    /// Performs asynchronous deencryption of the specified data using the provided encryption key and the selected AES encryption platform.
+    /// </summary>
+    /// <param name="inputData">The encrypted data to be deencrypted.</param>
+    /// <param name="encryptionKey">The key used for AES deencryption.</param>
+    /// <returns>A task that represents the asynchronous deencryption operation.</returns>
+    private static async Task DeencryptDataAsync(Memory<byte> inputData, Memory<byte> encryptionKey)
+    {
+        switch (CurrentAesEncryptionPlatform)
+        {
+            case AesEncryptionPlatform.Hardware:
+                await DeencryptIntrinsicsAsync(inputData, encryptionKey);
+                return;
+            default:
+            case AesEncryptionPlatform.Software:
+                await AesDeencryptSoftwareBasedAsync(inputData, encryptionKey);
+                return;
+        }
+    }
+
+    #endregion
+
+    #region HELPERS
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ParallelOptions"/> configured for optimal parallel execution on the current machine.
+    /// </summary>
+    /// <param name="ct">An optional cancellation token to observe during parallel operations. If <paramref name="ct"/> is <see langword="null"/>, a default non-cancelable token is used.</param>
+    /// <returns>A <see cref="ParallelOptions"/> instance with the specified cancellation token and a maximum degree of parallelism set to one less than the number of available processors.</returns>
+    public static ParallelOptions GetParallelOptions(CancellationToken? ct = null)
+        => new()
+        {
+            CancellationToken = ct ?? CancellationToken.None,
+            MaxDegreeOfParallelism = Math.Max(Environment.ProcessorCount - 1, 1)
+        };
+
+    /// <summary>
+    /// Calculates the upper 64 bits of the 128-bit product of two 64-bit unsigned integers.
+    /// </summary>
+    /// <remarks>Based on: https://gist.github.com/cocowalla/6070a53445e872f2bb24304712a3e1d2.</remarks>
+    /// <param name="left">The first 64-bit unsigned integer to multiply.</param>
+    /// <param name="right">The second 64-bit unsigned integer to multiply.</param>
+    /// <returns>The upper 64 bits of the 128-bit product of the specified operands.</returns>
     private static ulong MulHigh(ulong left, ulong right)
     {
         const byte shift = 0x20;
@@ -90,20 +171,20 @@ public class LimeDeencryptor(int availableCpuThreads)
     }
 
     /// <summary>
-    /// Multiplies two ulong values.
+    /// Calculates the lower 64 bits of the product of two unsigned 64-bit integers.
     /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns>Low-order ulong value.</returns>
+    /// <param name="left">The first unsigned 64-bit integer to multiply.</param>
+    /// <param name="right">The second unsigned 64-bit integer to multiply.</param>
+    /// <returns>The lower 64 bits of the product of the specified values.</returns>
     private static ulong MulLow(ulong left, ulong right)
         => left * right;
 
     /// <summary>
-    /// Calculates an index of a radical expression.
+    /// Calculates the number of times the specified unsigned integer can be right-shifted by the given step before reaching zero.
     /// </summary>
-    /// <param name="radicand"></param>
-    /// <param name="step"></param>
-    /// <returns></returns>
+    /// <param name="radicand">The unsigned integer value to be repeatedly right-shifted.</param>
+    /// <param name="step">The number of bits to shift right in each iteration.</param>
+    /// <returns>The number of iterations required to reduce the radicand to zero by right-shifting it by the specified step each time.</returns>
     private static int RootDegree(ulong radicand, int step)
     {
         var index = 0;
@@ -115,23 +196,29 @@ public class LimeDeencryptor(int availableCpuThreads)
         while (radicand != 0);
         return index;
     }
+    
+    /// <summary>
+    /// Determines whether the most significant bit of the specified 32-bit unsigned integer is set.
+    /// </summary>
+    /// <param name="number">The 32-bit unsigned integer to evaluate.</param>
+    /// <returns><see langword="true"/> if the most significant bit of number is set; otherwise, <see langword="false"/>.</returns>
+    private static bool IsMostSignificantBitSet(uint number) 
+        => (number & 0x80000000) != 0;
 
     /// <summary>
-    /// Checks if the Most Significant Bit is set.
+    /// Determines whether the most significant bit of the specified 64-bit unsigned integer is set.
     /// </summary>
-    /// <param name="number"></param>
-    /// <returns>Returns <c>true</c> if the Most Significant Bit is set</returns>
+    /// <param name="number">The 64-bit unsigned integer to evaluate.</param>
+    /// <returns><see langword="true"/> if the most significant bit of number is set; otherwise, <see langword="false"/>.</returns>
     private static bool IsMostSignificantBitSet(ulong number)
         => (number & 0x8000000000000000) != 0;
-    // private static bool IsMostSignificantBitSet(uint number)
-    //   => (number & 0x80000000) != 0;
 
     /// <summary>
-    /// Randomizes the range of bytes in a given span.
+    /// Fills the specified span of bytes with random values, starting at the given index.
     /// </summary>
-    /// <param name="span"></param>
-    /// <param name="start"></param>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <param name="span">The span of bytes to populate with random values.</param>
+    /// <param name="start">The zero-based index at which to begin randomizing the span.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="start"/> is less than 0 or greater than the length of <paramref name="span"/>.</exception>
     private static void RandomizeSpan(Span<byte> span, int start = 0)
     {
         if (start < 0 || start > span.Length)
@@ -142,10 +229,10 @@ public class LimeDeencryptor(int availableCpuThreads)
     }
 
     /// <summary>
-    /// Performs NOT operation on provided UserID.
+    /// Computes the bitwise complement of the specified user identifier.
     /// </summary>
-    /// <param name="userId"></param>
-    /// <returns>Negated <paramref name="userId"/>.</returns>
+    /// <param name="userId">The user identifier to invert.</param>
+    /// <returns>An unsigned 64-bit integer representing the bitwise complement of the input user ID.</returns>
     private static ulong NotUserId(ulong userId) => ~userId;
 
     /// <summary>
@@ -154,29 +241,27 @@ public class LimeDeencryptor(int availableCpuThreads)
     /// </summary>
     /// <param name="containerA">The first container to compare.</param>
     /// <param name="containerB">The second container to compare.</param>
-    /// <returns>
-    /// Returns <c>true</c> if <paramref name="containerA"/> is reverse-ordered less than <paramref name="containerB"/>; otherwise, returns <c>false</c>.
-    /// </returns>
+    /// <returns>Returns <see langword="true"/> if <paramref name="containerA"/> is reverse-ordered less than <paramref name="containerB"/>; otherwise, returns <see langword="false"/>.</returns>
     /// <exception cref="ArgumentException"></exception>
     private static bool IsReverseOrderedLess(ReadOnlySpan<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
         if(containerA.Length != containerB.Length) throw new ArgumentException("The two containers must have the same length.");
         for (var i = containerA.Length; i > 0; i--)
         {
-            // check if nth element of containerA is less than containerB
+            // Check if nth element of containerA is less than containerB
             if (containerA[i - 1] < containerB[i - 1]) return true;
-            // check if nth element of containerA is greater than containerB
+            // Check if nth element of containerA is greater than containerB
             if (containerA[i - 1] > containerB[i - 1]) return false;
         }
         return false;
     }
 
     /// <summary>
-    /// Returns the zero-based position of the last non-zero element in the span.
+    /// Finds the zero-based index of the last element in the span that is not equal to the default value of type <typeparamref name="T"/>.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="span"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">The value type of the elements in the span. Must implement <see cref="IEquatable{T}"/> to support equality comparison with the default value.</typeparam>
+    /// <param name="span">The read-only span of value type elements to search.</param>
+    /// <returns>The zero-based index of the last non-default element in the span; returns 0 if all elements are equal to the default value.</returns>
     private static int LastNonZeroIndexZeroBased<T>(ReadOnlySpan<T> span) where T : struct, IEquatable<T>
     {
         for (var i = span.Length; i > 0; i--)
@@ -184,14 +269,14 @@ public class LimeDeencryptor(int availableCpuThreads)
                 return i;
         return 0;
     }
-    
+
     /// <summary>
-    /// Loads <paramref name="cargo"/> into a <paramref name="container"/> at given <paramref name="position"/> and clears the free space.
+    /// Initializes the specified container by setting the element at the given position to the provided cargo value and clearing all other elements.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="container"></param>
-    /// <param name="cargo"></param>
-    /// <param name="position"></param>
+    /// <typeparam name="T">The value type of the elements contained in the span.</typeparam>
+    /// <param name="container">The span to be initialized. All elements except the one at the specified position will be cleared.</param>
+    /// <param name="cargo">The value to assign to the element at the specified position within the container.</param>
+    /// <param name="position">The zero-based index at which to place the cargo value. Defaults to 0.</param>
     private static void SetupContainer<T>(Span<T> container, T cargo, int position = 0) where T : struct
     {
         container[position] = cargo;
@@ -200,68 +285,70 @@ public class LimeDeencryptor(int availableCpuThreads)
     }
 
     /// <summary>
-    /// Loads <paramref name="cargo"/> into a <paramref name="container"/> at given <paramref name="position"/> and clears the free space.
+    /// Initializes a segment of the specified container span with the contents of the cargo span, starting at the given position, and clears all other elements in the container.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="container"></param>
-    /// <param name="cargo"></param>
-    /// <param name="position"></param>
+    /// <typeparam name="T">The value type of the elements contained in the spans.</typeparam>
+    /// <param name="container">The span to be initialized and cleared. Elements outside the cargo segment will be set to their default value.</param>
+    /// <param name="cargo">The read-only span whose contents are copied into the container starting at the specified position.</param>
+    /// <param name="position">The zero-based index in the container at which to begin copying the cargo. Defaults to 0.</param>
     private static void SetupContainer<T>(Span<T> container, ReadOnlySpan<T> cargo, int position = 0) where T : struct
     {
         cargo.CopyTo(container[position..]);
         container[..position].Clear();
         container[(position + cargo.Length)..].Clear();
     }
-
+    
     /// <summary>
-    /// Loads <paramref name="cargo"/> into a <paramref name="container"/> at given <paramref name="position"/> and clears the free space.
+    /// Initializes the specified container by placing the provided cargo at the given position asynchronously.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="container"></param>
-    /// <param name="cargo"></param>
-    /// <param name="position"></param>
-    private static async Task SetupContainerAsync<T>(Memory<T> container, ReadOnlyMemory<T> cargo, int position = 0) where T : struct 
-        => await Run(() => SetupContainer(container.Span, cargo.Span, position));
-
-    /// <summary>
-    /// Loads <paramref name="cargo"/> into a <paramref name="container"/> at given <paramref name="position"/> and clears the free space.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="container"></param>
-    /// <param name="cargo"></param>
-    /// <param name="position"></param>
+    /// <typeparam name="T">The value type of the elements contained in the memory buffer.</typeparam>
+    /// <param name="container">The memory buffer to be initialized. Represents a contiguous region of memory for value type elements.</param>
+    /// <param name="cargo">The value to be placed into the container at the specified position.</param>
+    /// <param name="position">The zero-based index within the container at which to place the cargo. Defaults to 0.</param>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
     private static async Task SetupContainerAsync<T>(Memory<T> container, T cargo, int position = 0) where T : struct
         => await Run(() => SetupContainer(container.Span, cargo, position));
-    
-    #endregion
-
-    #region ENCRYPTION METHODS
 
     /// <summary>
-    /// Creates a Key.
+    /// Initializes the specified container with the provided cargo, starting at the given position asynchronously.
     /// </summary>
-    /// <param name="key"></param>
-    /// <param name="length"></param>
-    /// <returns></returns>
-    private static ulong[] CreateKey(ulong key, int length = 0)
+    /// <typeparam name="T">The value type of the elements contained in both the container and cargo memories.</typeparam>
+    /// <param name="container">The memory region to be set up with the cargo data. Must be large enough to accommodate the cargo at the specified position.</param>
+    /// <param name="cargo">The read-only memory containing the data to be placed into the container.</param>
+    /// <param name="position">The zero-based index in the container at which to begin placing the cargo. Must be within the bounds of the container.</param>
+    /// <returns>A task that represents the asynchronous setup operation.</returns>
+    private static async Task SetupContainerAsync<T>(Memory<T> container, ReadOnlyMemory<T> cargo, int position = 0) where T : struct
+        => await Run(() => SetupContainer(container.Span, cargo.Span, position));
+
+    #endregion
+
+    #region ENCRYPTION_METHODS
+
+    /// <summary>
+    /// Generates an encryption key based on the specified seed and returns a sequence of unsigned 64-bit integers representing the key.
+    /// </summary>
+    /// <param name="seed">The input value used as the basis for key generation.</param>
+    /// <param name="length">The number of elements to include in the returned key. If set to 0, the method automatically determines the length based on the generated data.</param>
+    /// <returns>An array of unsigned 64-bit integers containing the generated encryption key.</returns>
+    private static ulong[] CreateKey(ulong seed, int length = 0)
     {
-        // create localContainerA
+        // Create localContainerA
         Span<ulong> localContainerA = stackalloc ulong[ContainerCapacityInUlongs];
-        SetupContainer(localContainerA, key);
-        // create resultContainer
+        SetupContainer(localContainerA, seed);
+        // Create resultContainer
         Span<ulong> resultContainer = stackalloc ulong[ContainerCapacityInUlongs];
         SetupContainer(resultContainer, PrivateKey2);
-        // create localContainerB
+        // Create localContainerB
         Span<ulong> localContainerB = stackalloc ulong[ContainerCapacityInUlongs];
-        // execute a set of encryption methods
+        // Execute a set of encryption methods
         SetOfEncryptionMethods(localContainerA, resultContainer, localContainerB);
-        // prepare resultContainer
+        // Prepare resultContainer
         SetupContainer(resultContainer, PrivateKey3);
-        // prepare localContainerB
+        // Prepare localContainerB
         SetupContainer(localContainerB, PrivateKey1);
-        // calculate a key and return it
+        // Calculate a key and return it
         Limegator(resultContainer, localContainerA, localContainerB);
-        length = length == 0 ? LastNonZeroIndexZeroBased<ulong>(resultContainer) : length;
+        length = length == 0 ? LastNonZeroIndexZeroBased(resultContainer) : length;
         return resultContainer[..length].ToArray();
     }
 
@@ -318,7 +405,7 @@ public class LimeDeencryptor(int availableCpuThreads)
         Span<Vector128<byte>> aesRoundKeys = stackalloc Vector128<byte>[rounds + 1];
 
         //// AES KEYGEN
-        // build the first block (Expand AES-128 key)
+        // Build the first block (Expand AES-128 key)
         aesRoundKeys[0] = key[0];
         for (var i = 0; i < rounds; i++)
         {
@@ -337,19 +424,19 @@ public class LimeDeencryptor(int availableCpuThreads)
                 9 => Aes.KeygenAssist(aesRoundKeys[i], 0x36),
                 _ => Aes.KeygenAssist(aesRoundKeys[i], 0x8D)
             };
-            // shift xmm2 left by 4 bytes
+            // Shift xmm2 left by 4 bytes
             var shift1 = Sse2.ShiftLeftLogical128BitLane(aesRoundKeys[i].AsUInt32(), shift).AsInt32();
-            // shift shift1 left by 4 bytes
+            // Shift shift1 left by 4 bytes
             var shift2 = Sse2.ShiftLeftLogical128BitLane(shift1.AsUInt32(), shift).AsInt32();
-            // shift shift2 left by 4 bytes
+            // Shift shift2 left by 4 bytes
             var shift3 = Sse2.ShiftLeftLogical128BitLane(shift2, shift);
-            // compute the final result using shuffle and XOR instructions
+            // Compute the final result using shuffle and XOR instructions
             var shuffle1 = Sse2.Shuffle(innerRoundKey.AsInt32(), 255);
             var xor1 = Sse2.Xor(shift1, aesRoundKeys[i].AsInt32());
             var xor2 = Sse2.Xor(shift2, xor1);
             var xor3 = Sse2.Xor(xor2, shift3);
             var xor4 = Sse2.Xor(xor3, shuffle1);
-            // add key to the aesRoundKeys
+            // Add key to the aesRoundKeys
             aesRoundKeys[i + 1] = xor4.AsByte();
         }
 
@@ -433,7 +520,7 @@ public class LimeDeencryptor(int availableCpuThreads)
     /// <returns>Modifies <paramref name="containerA"/>.</returns>
     private static void HandleOverflow(Span<ulong> containerA, Span<ulong> containerB)
     {
-        // setup containerB
+        // Setup containerB
         SetupContainer(containerB, (ulong)1);
 
         SubtractContainers(containerA, containerB);
@@ -452,50 +539,50 @@ public class LimeDeencryptor(int availableCpuThreads)
     /// <returns>Modifies <paramref name="containerA"/>.</returns>
     private static void EncryptionFirst(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
-        // check for empty containers
-        var containerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+        // Check for empty containers
+        var containerALength = LastNonZeroIndexZeroBased(containerA);
         if (containerALength == 0) return;
         var containerBLength = LastNonZeroIndexZeroBased(containerB);
         if (containerBLength == 0)
         {
-            // set all the containerA elements to 0
+            // Set all the containerA elements to 0
             containerA.Clear();
             return;
         }
 
-        // create a resultContainer
+        // Create a resultContainer
         Span<ulong> resultContainer = stackalloc ulong[ContainerCapacityInUlongs];
-        // create a localContainerB
+        // Create a localContainerB
         Span<ulong> localContainerB = stackalloc ulong[ContainerCapacityInUlongs];
         containerB.CopyTo(localContainerB);
 
         while (true)
         {
-            // detect overflow in...
+            // Detect overflow in...
             var overflowSwitch = false;
-            // ... localContainerA
+            // ... LocalContainerA
             if (IsMostSignificantBitSet(containerA[^1]))
             {
                 overflowSwitch ^= true;
                 HandleOverflow(containerA, resultContainer);
-                // re-check container length
-                containerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+                // Re-check container length
+                containerALength = LastNonZeroIndexZeroBased(containerA);
             }
 
-            // ... localContainerB
+            // ... LocalContainerB
             if (IsMostSignificantBitSet(localContainerB[^1]))
             {
                 overflowSwitch ^= true;
                 HandleOverflow(localContainerB, resultContainer);
-                // re-check container length
-                containerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+                // Re-check container length
+                containerBLength = LastNonZeroIndexZeroBased(localContainerB);
                 if (containerBLength == 0) break;
             }
 
-            // prepare resultContainer
+            // Prepare resultContainer
             resultContainer.Clear();
 
-            // manipulate bytes in both containers
+            // Manipulate bytes in both containers
             if (containerALength > 0)
             {
                 for (var y = 0; y < containerALength; y++)
@@ -540,8 +627,8 @@ public class LimeDeencryptor(int availableCpuThreads)
     /// <returns>Modifies <paramref name="dataContainer"/>.</returns>
     private static void EncryptionSecond(Span<ulong> dataContainer, int bits)
     {
-        var division = bits >> 6; // division by 64
-        var reminder = bits & 0x3F; // division reminder
+        var division = bits >> 6; // Division by 64
+        var reminder = bits & 0x3F; // Division reminder
 
         if (reminder != 0)
         {
@@ -579,33 +666,33 @@ public class LimeDeencryptor(int availableCpuThreads)
     /// <returns>Modifies <paramref name="containerA"/>.</returns>
     private static void Limeghetti(Span<ulong> containerA, ReadOnlySpan<ulong> containerB)
     {
-        // check for empty containers
-        var containerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+        // Check for empty containers
+        var containerALength = LastNonZeroIndexZeroBased(containerA);
         if (containerALength == 0) return;
         var containerBLength = LastNonZeroIndexZeroBased(containerB);
         if (containerBLength == 0)
         {
             // ORDER_66
-            // set all the containerA elements to 0
+            // Set all the containerA elements to 0
             containerA.Clear();
             return;
         }
 
-        // create a localContainerB
+        // Create a localContainerB
         Span<ulong> localContainerB = stackalloc ulong[ContainerCapacityInUlongs];
         containerB.CopyTo(localContainerB);
 
-        // create other localContainers
+        // Create other localContainers
         Span<ulong> localContainerC = stackalloc ulong[ContainerCapacityInUlongs];
         Span<ulong> localContainerD = stackalloc ulong[ContainerCapacityInUlongs];
         Span<ulong> localContainerE = stackalloc ulong[ContainerCapacityInUlongs];
         Span<ulong> resultContainer = stackalloc ulong[ContainerCapacityInUlongs];
-        // clear resultContainer
+        // Clear resultContainer
         resultContainer.Clear();
 
         while (true)
         {
-            // detect overflow in...
+            // Detect overflow in...
             // ... localContainerA
             if (IsMostSignificantBitSet(containerA[^1]))
                 HandleOverflow(containerA, localContainerC);
@@ -624,22 +711,22 @@ public class LimeDeencryptor(int availableCpuThreads)
                 if (IsReverseOrderedLess(containerA, localContainerB)) break; // ORDER_66
             }
 
-            // check container length
-            var localContainerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+            // Check container length
+            var localContainerBLength = LastNonZeroIndexZeroBased(localContainerB);
             int localContainerALength;
 
-            // calculate bits
+            // Calculate bits
             var rootDegree = localContainerBLength == 0 ? 0 : RootDegree(localContainerB[localContainerBLength - 1], 1);
             var bits = 32 - (rootDegree & 0x1F);
 
-            // perform EncryptionSecond on both localContainers
+            // Perform EncryptionSecond on both localContainers
             EncryptionSecond(containerA, bits);
             EncryptionSecond(localContainerB, bits);
 
-            // re-check container length
-            localContainerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+            // Re-check container length
+            localContainerBLength = LastNonZeroIndexZeroBased(localContainerB);
 
-            // remember the last element of containerA
+            // Remember the last element of containerA
             var lastElementA = containerA[^1];
             var lastElementB = containerA[^1];
 
@@ -664,8 +751,8 @@ public class LimeDeencryptor(int availableCpuThreads)
                     }
                     else if (!IsMostSignificantBitSet(lastElementB) && IsReverseOrderedLess(containerA, localContainerB)) break; // ESCAPE
 
-                    // re-check container length
-                    localContainerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
+                    // Re-check container length
+                    localContainerALength = LastNonZeroIndexZeroBased(containerA);
                     
                     if (localContainerALength == 0) break; // ESCAPE
                     if (localContainerALength < 2) continue;
@@ -680,14 +767,14 @@ public class LimeDeencryptor(int availableCpuThreads)
                     var hashesGap = tinyHashesA - tinyHashesB;
                     var lastQueueElemDiv = lastQueueElemA / lastQueueElemB;
 
-                    // copy localContainerB into localContainerC
+                    // Copy localContainerB into localContainerC
                     localContainerB.CopyTo(localContainerC);
 
                     if (tinyHashesA >= tinyHashesB)
                     {
                         if (lastQueueElemDiv >> 32 != 0) lastQueueElemDiv = 0xFFFFFFFF;
                         EncryptionSecond(localContainerC, 32 * hashesGap);
-                        // prepare localContainerD
+                        // Prepare localContainerD
                         localContainerD[0] = lastQueueElemDiv;
                         localContainerD[1..].Clear();
                         EncryptionFirst(localContainerC, localContainerD);
@@ -714,9 +801,9 @@ public class LimeDeencryptor(int availableCpuThreads)
                         LocalSubtractionProcess(ref lastQueueElemDiv, localContainerB, localContainerC, localContainerD, hashesGap);
                     }
 
-                    // prepare localContainerD
+                    // Prepare localContainerD
                     localContainerD.Clear();
-                    // prepare localContainerE
+                    // Prepare localContainerE
                     localContainerE[0] = lastQueueElemDiv;
                     localContainerE[1..].Clear();
 
@@ -724,18 +811,18 @@ public class LimeDeencryptor(int availableCpuThreads)
                     EncryptionSecond(localContainerD, 32 * hashesGap);
                     lastElementB = localContainerB[^1];
 
-                    // calculate resultContainer
+                    // Calculate resultContainer
                     AddContainers(resultContainer, localContainerD);
 
-                    // prepare localContainerD
+                    // Prepare localContainerD
                     localContainerC.CopyTo(localContainerD);
-                    // update containerA
+                    // Update containerA
                     SubtractContainers(containerA, localContainerD);
                 }
             }
             // ESCAPE
-            localContainerALength = LastNonZeroIndexZeroBased<ulong>(containerA);
-            localContainerBLength = LastNonZeroIndexZeroBased<ulong>(localContainerB);
+            localContainerALength = LastNonZeroIndexZeroBased(containerA);
+            localContainerBLength = LastNonZeroIndexZeroBased(localContainerB);
             
             while (true)
             {
@@ -757,7 +844,7 @@ public class LimeDeencryptor(int availableCpuThreads)
             return;
         }
         // ORDER_66
-        // set all the containerA elements to 0
+        // Set all the containerA elements to 0
         containerA.Clear();
         return;
 
@@ -785,9 +872,9 @@ public class LimeDeencryptor(int availableCpuThreads)
     /// <returns>Modifies <paramref name="containerA"/>.</returns>
     private static void SetOfEncryptionMethods(Span<ulong> containerA, ReadOnlySpan<ulong> containerB, Span<ulong> localContainer)
     {
-        // prepare localContainer
+        // Prepare localContainer
         containerA.CopyTo(localContainer);
-        // execute set of encryption methods
+        // Execute set of encryption methods
         Limeghetti(localContainer, containerB);
         EncryptionFirst(localContainer, containerB);
         SubtractContainers(containerA, localContainer);
@@ -802,15 +889,15 @@ public class LimeDeencryptor(int availableCpuThreads)
     /// <returns>Modifies <paramref name="containerA"/></returns>
     private static void Limegator(Span<ulong> containerA, ReadOnlySpan<ulong> containerB, ReadOnlySpan<ulong> containerC)
     {
-        // create resultContainer
+        // Create resultContainer
         Span<ulong> resultContainer = stackalloc ulong[ContainerCapacityInUlongs];
         SetupContainer<ulong>(resultContainer, 1);
 
-        // create localContainerB
+        // Create localContainerB
         Span<ulong> localContainerB = stackalloc ulong[ContainerCapacityInUlongs];
         containerB.CopyTo(localContainerB);
 
-        // create other localContainers
+        // Create other localContainers
         Span<ulong> localContainerA = stackalloc ulong[ContainerCapacityInUlongs];
         Span<ulong> localContainerC = stackalloc ulong[ContainerCapacityInUlongs];
 
@@ -864,7 +951,7 @@ public class LimeDeencryptor(int availableCpuThreads)
             Limegator(localContainerA, cUserId, cKey1);
             limeBank[i].KeyFragment.CopyTo(localContainerB);
             Limeghetti(localContainerB, localContainerA);
-            // put the calculated part of the key in the segmentHashedKey
+            // Put the calculated part of the key in the segmentHashedKey
             segmentHashedKey[i] = localContainerB[0];
         }
     }
@@ -892,7 +979,7 @@ public class LimeDeencryptor(int availableCpuThreads)
                 Limegator(localContainerA, localCUserId, localCKey1);
                 localLimeBank[i].KeyFragment.CopyTo(localContainerB);
                 Limeghetti(localContainerB, localContainerA);
-                // put the calculated part of the key in the segmentHashedKey
+                // Put the calculated part of the key in the segmentHashedKey
                 resultContainer[i] = localContainerB[0];
             }
             var resultContainerAsBytes = MemoryMarshal.Cast<ulong, byte>(resultContainer);
@@ -910,15 +997,15 @@ public class LimeDeencryptor(int availableCpuThreads)
         Span<ulong> localContainer = stackalloc ulong[laps];
         for (var x = 0; x < containerA.Length - 1; x++)
         {
-            // reset localContainer
+            // Reset localContainer
             localContainer.Clear();
 
-            // first ride
+            // First ride
             for (var i = 0; i < laps; i++)
                 for (var y = 0; y < laps; y++)
                     localContainer[i] ^= containerA[y * laps + i];
 
-            // second ride
+            // Second ride
             for (var i = 0; i < laps; i++)
             {
                 var left = ulong.RotateLeft(localContainer[(i + 1) % laps], 1);
@@ -927,7 +1014,7 @@ public class LimeDeencryptor(int availableCpuThreads)
                     containerA[y * laps + i] ^= left ^ right;
             }
 
-            // third ride
+            // Third ride
             var item = containerA[1];
             for (var i = 0; i < LimerouselRotationsTable.Length; i++)
             {
@@ -936,7 +1023,7 @@ public class LimeDeencryptor(int availableCpuThreads)
                 containerA[LimerouselPositionsTable[i]] = rotatedItem;
             }
 
-            // fourth ride
+            // Fourth ride
             for (var i = 0; i < laps; i++)
             {
                 var elementA = containerA[i * laps];
@@ -944,11 +1031,11 @@ public class LimeDeencryptor(int availableCpuThreads)
                 var elementC = containerA[i * laps + 2];
                 var elementD = containerA[i * laps + 3];
                 var elementE = containerA[i * laps + 4];
-                containerA[i * laps] = elementA ^ elementC & ~elementB;
-                containerA[i * laps + 1] = elementB ^ elementD & ~elementC;
-                containerA[i * laps + 2] = elementC ^ elementE & ~elementD;
-                containerA[i * laps + 3] = elementD ^ elementA & ~elementE;
-                containerA[i * laps + 4] = elementE ^ elementB & ~elementA;
+                containerA[i * laps] = elementA ^ (elementC & ~elementB);
+                containerA[i * laps + 1] = elementB ^ (elementD & ~elementC);
+                containerA[i * laps + 2] = elementC ^ (elementE & ~elementD);
+                containerA[i * laps + 3] = elementD ^ (elementA & ~elementE);
+                containerA[i * laps + 4] = elementE ^ (elementB & ~elementA);
             }
             containerA[0] ^= LimerouselXorsTable[x];
         }
@@ -992,64 +1079,58 @@ public class LimeDeencryptor(int availableCpuThreads)
             CalculateSegmentDataChecksum(localContainerA, localContainerB);
         });
     }
-
-    public delegate void DeencryptDataDelegate(Span<byte> dataAsBytes, Span<byte> encryptionKey);
-    public delegate Task DeencryptDataAsyncDelegate(Memory<byte> memory, Memory<byte> encryptionKey);
     
     /// <summary>
-    /// Decrypts <paramref name="limeSegments"/> asynchronously.
+    /// Decrypts the specified collection of LimeDataSegment objects asynchronously using the provided AES encryption platform and user identifier.
     /// </summary>
-    /// <param name="limeSegments"></param>
-    /// <param name="userId"></param>
-    /// <param name="deencryptAsyncDelegate"></param>
-    /// <returns></returns>
-    public async Task<bool> DecryptDataAsync(Memory<LimeDataSegment> limeSegments, ulong userId, DeencryptDataAsyncDelegate deencryptAsyncDelegate)
+    /// <param name="limeSegments">A memory region containing the LimeDataSegment instances to be decrypted.</param>
+    /// <param name="userId">The unique identifier of the user whose key is used for decryption.</param>
+    /// <param name="po">Optional parallelization settings that control how the decryption tasks are scheduled and executed. If null, default parallel options are used.</param>
+    /// <returns>A task that represents the asynchronous decryption operation.</returns>
+    /// <exception cref="InvalidDataException">Thrown if the checksum validation fails for the first LimeDataSegment, indicating possible data corruption or tampering.</exception>
+    public static async Task DecryptDataAsync(Memory<LimeDataSegment> limeSegments, ulong userId, ParallelOptions? po = null)
     {
-        // load key into container
+        // Load key into container
         Memory<ulong> cKey1 = new ulong[ContainerCapacityInUlongs];
         await SetupContainerAsync(cKey1, PrivateKey1);
 
-        // load userID into container
+        // Load userID into container
         Memory<ulong> cUserId = new ulong[ContainerCapacityInUlongs];
         await SetupContainerAsync(cUserId, NotUserId(userId));
-        
-        ParallelOptions po = new()
-        {
-            CancellationToken = CancellationToken.None,
-            MaxDegreeOfParallelism = _availableCpuThreads
-        };
-        var isChecksumValid = true;
+
+        // Assure ParallelOptions is not null
+        po ??= GetParallelOptions();
+
         await Parallel.ForAsync(0, limeSegments.Length, po, async (i, _) =>
         {
             Memory<byte> cHashPublicKeysResult = new byte[ContainerCapacityInUlongs * sizeof(ulong)];
             Memory<byte> checksumContainer = new byte[ChecksumContainerCapacityInBytes * sizeof(ulong)];
             var segment = limeSegments.Span[i];
-            // hash public keys
+            // Hash public keys
             await HashPublicKeysAsync(cHashPublicKeysResult, cKey1, cUserId, segment.HashedKeyBanks);
             cHashPublicKeysResult = cHashPublicKeysResult[..(4 * sizeof(ulong))];
 
-            // deencrypt SegmentData
+            // Deencrypt SegmentData
             Memory<byte> dataAsBytes = segment.SegmentData;
-            await deencryptAsyncDelegate(dataAsBytes, cHashPublicKeysResult);
-            // compare a newly calculated checksum with the old one on the first segment and break loop if not equal
+            await DeencryptDataAsync(dataAsBytes, cHashPublicKeysResult);
+            // Compare a newly calculated checksum with the old one on the first segment and break loop if not equal
             if (i == 0)
             {
                 await CalculateSegmentDataChecksumAsync(checksumContainer, dataAsBytes);
                 var test = await segment.ValidateSegmentChecksumAsync(checksumContainer);
-                if (!test) isChecksumValid = false;
+                if (!test) throw new InvalidDataException("Lime Data Segment checksum validation failed.");
             }
         });
-        return isChecksumValid;
     }
-
+    
     /// <summary>
-    /// Encrypts <paramref name="limeSegments"/> asynchronously.
+    /// Encrypts the specified collection of LimeDataSegment objects asynchronously using the provided AES encryption platform and user identifier.
     /// </summary>
-    /// <param name="limeSegments"></param>
-    /// <param name="userId"></param>
-    /// <param name="deencryptAsyncDelegate"></param>
-    /// <returns></returns>
-    public async Task<bool> EncryptDataAsync(Memory<LimeDataSegment> limeSegments, ulong userId, DeencryptDataAsyncDelegate deencryptAsyncDelegate)
+    /// <param name="limeSegments">A memory buffer containing the LimeDataSegment objects to be encrypted. Each segment will be processed and encrypted individually.</param>
+    /// <param name="userId">The unique identifier of the user for whom the encryption is performed.</param>
+    /// <param name="po">Optional parallelization settings that control how the encryption tasks are scheduled and executed. If null, default parallel options are used.</param>
+    /// <returns>A task that represents the asynchronous encryption operation. The task completes when all segments have been encrypted.</returns>
+    public static async Task EncryptDataAsync(Memory<LimeDataSegment> limeSegments, ulong userId, ParallelOptions? po = null)
     {
         // Load key into container
         Memory<ulong> cKey1 = new ulong[ContainerCapacityInUlongs];
@@ -1080,13 +1161,11 @@ public class LimeDeencryptor(int availableCpuThreads)
         var cRandomizerSeedSpan = MemoryMarshal.Cast<ulong, byte>(cRandomizer.Span)[..sizeof(ulong)];
         RandomizeSpan(cRandomizerSeedSpan);
         var cRandomizerSeed = cRandomizer.Span[0];
-        
-        ParallelOptions po = new()
-        {
-            CancellationToken = CancellationToken.None,
-            MaxDegreeOfParallelism = _availableCpuThreads
-        };
-        await Parallel.ForAsync(0, limeSegments.Length, po, async (i, t) =>
+
+        // Assure ParallelOptions is not null
+        po ??= GetParallelOptions();
+
+        await Parallel.ForAsync(0, limeSegments.Length, po, async (i, ct) =>
         {
             // Create other Memories
             Memory<ulong> cHashedKeyPart = new ulong[ContainerCapacityInUlongs];
@@ -1109,7 +1188,7 @@ public class LimeDeencryptor(int availableCpuThreads)
                     segment.HashedKeyBanks[j].SetHeader(HeaderKey);
                     segment.HashedKeyBanks[j].SetKey(cHashedKeyPartSpan[..segment.HashedKeyBanks[j].KeyFragment.Length]);
                 }
-            }, t);
+            }, ct);
 
             var dataAsBytes = segment.SegmentData.AsMemory();
 
@@ -1124,57 +1203,60 @@ public class LimeDeencryptor(int availableCpuThreads)
             cHashPublicKeysResult = cHashPublicKeysResult[..(4 * sizeof(ulong))];
 
             // Deencrypt SegmentData
-            await deencryptAsyncDelegate(dataAsBytes, cHashPublicKeysResult);
+            await DeencryptDataAsync(dataAsBytes, cHashPublicKeysResult);
         });
-        return true;
     }
 
+#if DEBUG
     /// <summary>
-    /// Very slow, but effective. This is an ultimate act of desperation.
+    /// Attempts to identify the user ID associated with a segment of Lime data by processing and decrypting the segment within the specified range.
     /// </summary>
-    /// <param name="deencryptDelegate"></param>
-    /// <param name="cts"></param>
-    /// <param name="limeSegment"></param>
-    /// <param name="start"></param>
-    /// <param name="end"></param>
-    /// <param name="userId"></param>
-    public bool LimepickSegmentBatch(DeencryptDataDelegate deencryptDelegate, CancellationTokenSource cts, LimeDataSegment limeSegment, uint start, uint end, out uint userId)
+    /// <param name="limeSegment">The LimeDataSegment containing the segment data and associated key banks to be analyzed.</param>
+    /// <param name="po">Optional parallel execution settings, including cancellation support. If cancellation is requested, the operation terminates early.</param>
+    /// <param name="start">The inclusive starting value of the user ID range to search. Defaults to uint.MinValue if not specified.</param>
+    /// <param name="end">The inclusive ending value of the user ID range to search. Defaults to uint.MaxValue if not specified.</param>
+    /// <returns>The user ID found within the specified range that matches the expected pattern after decryption. Returns null if no matching user ID is found.</returns>
+    public static uint? LimepickSegmentBatch(LimeDataSegment limeSegment, ParallelOptions? po = null, uint start = uint.MinValue, uint end = uint.MaxValue)
     {
-        // load key into container
+        // TODO: Make it doesn't get stuck on false candidates.
+        // Load key into container
         Span<ulong> cKey1 = stackalloc ulong[ContainerCapacityInUlongs];
         SetupContainer(cKey1, PrivateKey1);
 
-        userId = 0;
-        byte[] pattern = [ 0x01, 0x0, 0x0, 0x0 ];
+        // Assure ParallelOptions is not null
+        po ??= GetParallelOptions();
+
+        uint? userId = null;
+        byte[] pattern = [0x01, 0x0, 0x0, 0x0];
         var segmentDataFirstRow = limeSegment.SegmentData.AsSpan(0, 16);
         Span<byte> dataAsBytes = stackalloc byte[segmentDataFirstRow.Length];
         Span<ulong> cUserId = stackalloc ulong[ContainerCapacityInUlongs];
         Span<ulong> cHashPublicKeysResult = stackalloc ulong[ContainerCapacityInUlongs];
         for (var i = start; i <= end; i++)
         {
-            if (cts.IsCancellationRequested) return false;
+            if (po.CancellationToken.IsCancellationRequested) return userId;
 
-            // load userID into container
+            // Load userID into container
             SetupContainer(cUserId, NotUserId(i));
 
-            // load segment data
+            // Load segment data
             segmentDataFirstRow.CopyTo(dataAsBytes);
 
-            // hash public keys
+            // Hash public keys
             HashPublicKeys(cHashPublicKeysResult, cKey1, cUserId, limeSegment.HashedKeyBanks);
             cHashPublicKeysResult = cHashPublicKeysResult[..4];
 
-            // deencrypt SegmentData
+            // Deencrypt SegmentData
             var cHashPublicKeysResultAsBytes = MemoryMarshal.Cast<ulong, byte>(cHashPublicKeysResult);
-            deencryptDelegate(dataAsBytes, cHashPublicKeysResultAsBytes);
+            DeencryptData(dataAsBytes, cHashPublicKeysResultAsBytes);
 
             var result = dataAsBytes.Slice(4, 4).SequenceEqual(pattern);
             if (!result) continue;
             userId = i;
-            return result;
         }
-        return false;
+        return userId;
     }
-    
+#endif
+
     #endregion
 }

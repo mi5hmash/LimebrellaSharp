@@ -1,2 +1,6 @@
-# Auto detect text files and perform LF normalization
+# Set default behavior to automatically normalize line endings.
 * text=auto
+
+# Treat these files as binary
+*/Resources/decrypted.bin   binary
+*/Resources/encrypted.bin   binary

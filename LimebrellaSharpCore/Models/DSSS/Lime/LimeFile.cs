@@ -1,21 +1,16 @@
-﻿using System.Runtime.InteropServices;
-using LimebrellaSharpCore.Helpers;
+﻿using LimebrellaSharpCore.Helpers;
+using System.Runtime.InteropServices;
 using static LimebrellaSharpCore.Helpers.LimeDeencryptor;
 
 namespace LimebrellaSharpCore.Models.DSSS.Lime;
 
-public class LimeFile(LimeDeencryptor deencryptor, string filename = "")
+public class LimeFile
 {
     /// <summary>
-    /// Extension of the <see cref="LimeFile"/>.
+    /// File extension of the <see cref="LimeFile"/>.
     /// </summary>
-    public const string Extension = "bin";
-
-    /// <summary>
-    /// Name of the <see cref="LimeFile"/>.
-    /// </summary>
-    public string FileName { get; set; } = filename;
-
+    public const string FileExtension = ".bin";
+    
     /// <summary>
     /// Header of the <see cref="LimeFile"/>.
     /// </summary>
@@ -30,119 +25,17 @@ public class LimeFile(LimeDeencryptor deencryptor, string filename = "")
     /// Footer of <see cref="LimeFile"/>.
     /// </summary>
     public LimeFooter Footer { get; set; } = new();
-
-    /// <summary>
-    /// Deencryptor instance.
-    /// </summary>
-    public LimeDeencryptor Deencryptor { get; } = deencryptor;
-
+    
     /// <summary>
     /// Stores the encryption state of the current file.
     /// </summary>
     public bool IsEncrypted { get; private set; }
 
     /// <summary>
-    /// Stores the encryption state of the current file.
+    /// Divides the specified <paramref name="data"/> into segments and initializes the <see cref="Segments"/> array.
     /// </summary>
-    public uint Key { get; set; }
-
-    /// <summary>
-    /// Loads the <paramref name="data"/> into the <see cref="LimeFile"/> object.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="encryptedFilesOnly"></param>
-    /// <returns></returns>
-    public BoolResult SetFileData(ReadOnlySpan<byte> data, bool encryptedFilesOnly = false)
-    {
-        try
-        {
-            // try to load the encrypted data
-            var result = TrySetFileData(data);
-            IsEncrypted = result.Result;
-            if (result.Result) return result;
-
-            // escape the function if only the encrypted data is needed
-            if (encryptedFilesOnly) return result;
-            
-            // reset header and footer
-            Header = new LimeHeader();
-            Footer = new LimeFooter();
-
-            // try to load decrypted data
-            SetFileSegments(data);
-            IsEncrypted = false;
-            return new BoolResult(true);
-        }
-        catch { /* ignored */ }
-        return new BoolResult(false, "Error on trying to open the file.");
-    }
-
-    /// <summary>
-    /// Loads the <paramref name="data"/> into the <see cref="LimeFile"/> object asynchronously.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="encryptedFilesOnly"></param>
-    /// <returns></returns>
-    public async Task<BoolResult> SetFileDataAsync(ReadOnlyMemory<byte> data, bool encryptedFilesOnly = false)
-        => await Task.Run(() => SetFileData(data.Span, encryptedFilesOnly));
-
-    /// <summary>
-    /// Tries to set the <paramref name="data"/> of a <see cref="LimeFile"/>.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <returns></returns>
-    private BoolResult TrySetFileData(ReadOnlySpan<byte> data)
-    {
-        using MemoryStream ms = new(data.ToArray());
-        using BinaryReader br = new(ms);
-        // HEADER
-        try
-        {
-            // try to load header data into the Header
-            Header = br.ReadStruct<LimeHeader>() ?? throw new NullReferenceException();
-        }
-        catch { return new BoolResult(false, "Invalid file header structure."); }
-
-        // check Header integrity
-        var test = Header.CheckIntegrity();
-        if (!test.Result) return test;
-
-        // SEGMENTS
-        var segmentsLength = ms.Length - (Marshal.SizeOf<LimeHeader>() + Marshal.SizeOf<LimeFooter>());
-        var segmentsCount = segmentsLength / Marshal.SizeOf<LimeDataSegment>();
-
-        // overwrite Segments collection
-        Segments = new LimeDataSegment[segmentsCount];
-        for (var i = 0; i < segmentsCount; i++)
-        {
-            LimeDataSegment segment;
-            try
-            {
-                segment = br.ReadStruct<LimeDataSegment>() ?? throw new NullReferenceException();
-            }
-            catch { return new BoolResult(false, $"Invalid DsssLimeDataSegment({i}) structure."); }
-            Segments[i] = segment;
-        }
-
-        // check the integrity of the first Segment
-        test = Segments.First().CheckIntegrity();
-        if (!test.Result) return test;
-
-        // FOOTER
-        try
-        {
-            // try to load footer data into the Footer
-            Footer = br.ReadStruct<LimeFooter>() ?? throw new NullReferenceException();
-        }
-        catch { return new BoolResult(false, "Invalid file footer structure."); }
-
-        return new BoolResult(true);
-    }
-
-    /// <summary>
-    /// Sets <see cref="Segments"/> of an existing object of a <see cref="LimeFile"/> type based on the <paramref name="data"/>.
-    /// </summary>
-    /// <param name="data"></param>
+    /// <param name="data">A read-only span of bytes containing the data to be segmented. The length of this span determines the number of
+    /// segments created.</param>
     private void SetFileSegments(ReadOnlySpan<byte> data)
     {
         var numberOfSegments = (int)Math.Ceiling((double)data.Length / LimeDataSegment.SegmentDataSize);
@@ -163,14 +56,113 @@ public class LimeFile(LimeDeencryptor deencryptor, string filename = "")
     }
 
     /// <summary>
-    /// Gets an existing object of a <see cref="LimeFile"/> type as byte array.
+    /// Attempts to parse and set the file header, data segments, and footer from the specified binary data buffer. Throws an exception if the data format is invalid.
     /// </summary>
-    /// <returns></returns>
-    public ReadOnlySpan<byte> GetFileData()
+    /// <param name="data">A read-only span of bytes containing the binary file data to be parsed.</param>
+    /// <exception cref="InvalidDataException">Thrown if the file header, any data segment, or the file footer structure is invalid or cannot be parsed from the provided data.</exception>
+    private void TrySetFileData(ReadOnlySpan<byte> data)
+    {
+        using MemoryStream ms = new(data.ToArray());
+        using BinaryReader br = new(ms);
+
+        // HEADER
+        // try to load header data into the Header
+        try { Header = br.ReadStruct<LimeHeader>() ?? throw new NullReferenceException(); }
+        catch { throw new InvalidDataException("Invalid file header structure."); }
+        // check the integrity of the Header (no need to rethrow the exception there)
+        Header.CheckIntegrity();
+
+        // SEGMENTS
+        var segmentsLength = ms.Length - (Marshal.SizeOf<LimeHeader>() + Marshal.SizeOf<LimeFooter>());
+        var segmentsCount = segmentsLength / Marshal.SizeOf<LimeDataSegment>();
+        // overwrite Segments collection
+        Segments = new LimeDataSegment[segmentsCount];
+        for (var i = 0; i < segmentsCount; i++)
+        {
+            LimeDataSegment segment;
+            try { segment = br.ReadStruct<LimeDataSegment>() ?? throw new NullReferenceException(); }
+            catch { throw new InvalidDataException($"Invalid DataSegment[{i}] structure."); }
+            Segments[i] = segment;
+        }
+        // check the integrity of the first segment (no need to rethrow the exception there)
+        Segments.First().CheckIntegrity();
+
+        // FOOTER
+        // try to load footer data into the Footer
+        try { Footer = br.ReadStruct<LimeFooter>() ?? throw new NullReferenceException(); }
+        catch { throw new InvalidDataException("Invalid file footer structure."); }
+    }
+
+    /// <summary>
+    /// Attempts to set the file data from the specified byte span, using encrypted format if possible.
+    /// </summary>
+    /// <param name="data">A read-only span of bytes containing the file data to be loaded. The data may be in encrypted or raw format.</param>
+    /// <param name="encryptedFilesOnly">If set to <see langword="true"/>, only encrypted file data will be accepted; otherwise, raw file data will be loaded if encrypted data is not available.</param>
+    public void SetFileData(ReadOnlySpan<byte> data, bool encryptedFilesOnly = false)
+    {
+        IsEncrypted = false;
+        try
+        {
+            // try to load the encrypted data
+            TrySetFileData(data);
+            IsEncrypted = true;
+        }
+        catch
+        {
+            // escape the function if only the encrypted data is needed
+            if (encryptedFilesOnly) return;
+            
+            // reset header and footer
+            Header = new LimeHeader();
+            Footer = new LimeFooter();
+
+            // load raw data as segments
+            SetFileSegments(data);
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously sets the file data using the specified byte buffer, with an option to restrict the operation to encrypted files only.
+    /// </summary>
+    /// <param name="data">A read-only memory buffer containing the file data to be set.</param>
+    /// <param name="encryptedFilesOnly">If <see langword="true"/>, the operation will only affect files that are encrypted; otherwise, all files are affected.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public async Task SetFileDataAsync(ReadOnlyMemory<byte> data, bool encryptedFilesOnly = false)
+        => await Task.Run(() => SetFileData(data.Span, encryptedFilesOnly));
+    
+    /// <summary>
+    /// Combines all file <see cref="Segments"/> into a single byte array representing the reconstructed file data.
+    /// </summary>
+    /// <returns>A byte array containing the concatenated data from all segments, trimmed to the decrypted data length specified in the footer.</returns>
+    public byte[] GetFileSegments()
+    {
+        using MemoryStream ms = new();
+        foreach (var segment in Segments) ms.Write(segment.SegmentData);
+        ms.SetLength(Footer.DecryptedDataLength);
+        return ms.ToArray();
+    }
+
+    /// <summary>
+    /// Asynchronously combines all file <see cref="Segments"/> into a single byte array representing the reconstructed file data.
+    /// </summary>
+    /// <returns>A byte array containing the concatenated data from all segments, trimmed to the decrypted data length specified in the footer.</returns>
+    public async Task<byte[]> GetFileSegmentsAsync()
+    {
+        using MemoryStream ms = new();
+        foreach (var segment in Segments) await ms.WriteAsync(segment.SegmentData);
+        ms.SetLength(Footer.DecryptedDataLength);
+        return ms.ToArray();
+    }
+
+    /// <summary>
+    /// Generates and returns the binary data representing the current file, including header, segments, and footer.
+    /// </summary>
+    /// <returns>A byte array containing the complete file data, including all headers, segments, and footer.</returns>
+    public byte[] GetFileData()
     {
         // randomize footer salt
         Footer.GenerateSalt();
-
+        // prepare memory stream and binary writer
         using MemoryStream ms = new();
         using BinaryWriter bw = new(ms);
         // write DSSS HEADER content
@@ -180,111 +172,54 @@ public class LimeFile(LimeDeencryptor deencryptor, string filename = "")
         // write DSSS FOOTER content
         bw.WriteStruct(Footer);
 
-        var dataAsBytes = ms.ToArray().AsSpan();
-        var dataAsInts = MemoryMarshal.Cast<byte, uint>(dataAsBytes);
+        var dataAsBytes = ms.ToArray();
+        var dataSpan = dataAsBytes.AsSpan();
 
         // sign file
-        SignFile(ref dataAsInts);
+        SignFile(ref dataSpan);
 
         // return data
         return dataAsBytes;
     }
 
     /// <summary>
-    /// Gets an existing object of a <see cref="LimeFile"/> type as byte array asynchronously.
+    /// Asynchronously generates and returns the binary data representing the current file, including header, segments, and footer.
     /// </summary>
-    /// <returns></returns>
-    public async Task<ReadOnlyMemory<byte>> GetFileDataAsync()
+    /// <returns>A byte array containing the complete file data, including all headers, segments, and footer.</returns>
+    public async Task<byte[]> GetFileDataAsync()
+        => await Task.Run(GetFileData);
+
+    /// <summary>
+    /// Asynchronously decrypts all <see cref="Segments"/> for the specified user using the provided AES encryption platform.
+    /// </summary>
+    /// <param name="userId">The unique identifier of the user whose segments are to be decrypted.</param>
+    /// <param name="po">Optional parallelization settings that control how the decryption operation is executed. If null, default parallel options are used.</param>
+    /// <returns>A task that represents the asynchronous decryption operation.</returns>
+    public async Task DecryptSegmentsAsync(ulong userId, ParallelOptions? po = null)
     {
-        return await Task.Run(() =>
-        {
-            // Randomize footer salt
-            Footer.GenerateSalt();
-
-            using MemoryStream ms = new();
-            using BinaryWriter bw = new(ms);
-            // write DSSS HEADER content
-            bw.WriteStruct(Header);
-            // write DSSS SEGMENTS content
-            foreach (var segment in Segments) bw.WriteStruct(segment);
-            // write DSSS FOOTER content
-            bw.WriteStruct(Footer);
-
-            var dataAsBytes = ms.ToArray().AsSpan();
-            var dataAsInts = MemoryMarshal.Cast<byte, uint>(dataAsBytes);
-
-            // sign file
-            SignFile(ref dataAsInts);
-            return dataAsBytes.ToArray().AsMemory();
-        });
+        await DecryptDataAsync(Segments, userId, po);
+        IsEncrypted = false;
     }
 
     /// <summary>
-    /// Gets all <see cref="Segments"/> of an existing object of a DsssLime type as Span&lt;byte&gt;.
+    /// Encrypts all data segments for the specified user using the provided AES encryption platform.
     /// </summary>
-    /// <returns></returns>
-    public ReadOnlySpan<byte> GetFileSegments()
+    /// <param name="userId">The unique identifier of the user for whom the segments will be encrypted.</param>
+    /// <param name="po">An optional ParallelOptions instance that configures the parallelization behavior of the encryption operation. If null, default parallelization settings are used.</param>
+    /// <returns>A task that represents the asynchronous encryption operation.</returns>
+    public async Task EncryptSegmentsAsync(ulong userId, ParallelOptions? po = null)
     {
-        using MemoryStream ms = new();
-        foreach (var segment in Segments) ms.Write(segment.SegmentData);
-        ms.SetLength(Footer.DecryptedDataLength);
-        return ms.ToArray();
+        await EncryptDataAsync(Segments, userId, po);
+        IsEncrypted = true;
     }
 
     /// <summary>
-    /// Gets all <see cref="Segments"/> of an existing object of a DsssLime type as Span&lt;byte&gt; asynchronously.
+    /// Computes a 32-bit Murmur3 hash for the specified sequence of unsigned integers.
     /// </summary>
-    /// <returns></returns>
-    public async Task<ReadOnlyMemory<byte>> GetFileSegmentsAsync()
-    {
-        using MemoryStream ms = new();
-        foreach (var segment in Segments) await ms.WriteAsync(segment.SegmentData);
-        ms.SetLength(Footer.DecryptedDataLength);
-        return ms.ToArray().AsMemory();
-    }
-    
-    /// <summary>
-    /// Encrypts <see cref="Segments"/> asynchronously.
-    /// </summary>
-    /// <returns></returns>
-    public async Task<bool> EncryptSegmentsAsync(DeencryptDataAsyncDelegate deencryptAsyncDelegate)
-    {
-        var result = await Deencryptor.EncryptDataAsync(Segments, Key, deencryptAsyncDelegate);
-        if (result) IsEncrypted ^= true;
-        return result;
-    }
-    
-    /// <summary>
-    /// Decrypts <see cref="Segments"/> asynchronously.
-    /// </summary>
-    /// <returns></returns>
-    public async Task<bool> DecryptSegmentsAsync(DeencryptDataAsyncDelegate deencryptAsyncDelegate)
-    {
-        var result = await Deencryptor.DecryptDataAsync(Segments, Key, deencryptAsyncDelegate);
-        if (result) IsEncrypted ^= true;
-        return result;
-    }
-
-    /// <summary>
-    /// Bruteforces the <paramref name="segmentIndex"/> of <see cref="Segments"/>.
-    /// </summary>
-    /// <param name="end"></param>
-    /// <param name="segmentIndex"></param>
-    /// <param name="id"></param>
-    /// <param name="deencryptDelegate"></param>
-    /// <param name="cts"></param>
-    /// <param name="start"></param>
-    /// <returns>Operation status and working <paramref name="id"/> if true.</returns>
-    public bool BruteforceSegment(out uint id, DeencryptDataDelegate deencryptDelegate, CancellationTokenSource cts, uint start, uint end, uint segmentIndex = 0)
-        => Deencryptor.LimepickSegmentBatch(deencryptDelegate, cts, Segments[segmentIndex], start, end, out id);
-
-    /// <summary>
-    /// Calculates MurmurHash3.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="seed"></param>
-    /// <returns></returns>
-    public static uint Murmur3_32(ReadOnlySpan<uint> data, uint seed = 0)
+    /// <param name="data">The input data to hash, represented as a read-only span of 32-bit unsigned integers.</param>
+    /// <param name="seed">An optional seed value to initialize the hash computation. Using different seeds produces different hash results for the same input data.</param>
+    /// <returns>A 32-bit unsigned integer containing the computed Murmur3 hash of the input data.</returns>
+    private static uint Murmur3_32(ReadOnlySpan<uint> data, uint seed = 0)
     {
         const uint hash0 = 0x1B873593;
         const uint hash1 = 0xCC9E2D51;
@@ -322,10 +257,14 @@ public class LimeFile(LimeDeencryptor deencryptor, string filename = "")
     }
 
     /// <summary>
-    /// This method signs a DSSS file.
-    /// Thanks to windwakr (https://github.com/windwakr) for identifying this hashing method as MurmurHash3_32.
+    /// Calculates and writes a Murmur3 hash signature to the end of the specified file data buffer.
     /// </summary>
-    /// <param name="fileData"></param>
-    private static void SignFile(ref Span<uint> fileData)
-        => fileData[^1] = Murmur3_32(fileData[..^1], 0xFFFFFFFF);
+    /// <remarks>Thanks to windwakr (https://github.com/windwakr) for identifying this hashing method as MurmurHash3_32.</remarks>
+    /// <typeparam name="T">The value type of each element in the file data buffer.</typeparam>
+    /// <param name="fileData">A span representing the file data to be signed. The signature will be written to the last element of this span.</param>
+    private static void SignFile<T>(ref Span<T> fileData) where T : struct
+    {
+        var span = MemoryMarshal.Cast<T, uint>(fileData);
+        span[^1] = Murmur3_32(span[..^1], 0xFFFFFFFF);
+    }
 }
