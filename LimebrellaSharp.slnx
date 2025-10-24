@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="limebrella-sharp-cli/limebrella-sharp-cli.csproj" />
+  <Project Path="LimebrellaSharpCore/LimebrellaSharpCore.csproj" />
+  <Project Path="LimebrellaSharpWpf/LimebrellaSharpWpf.csproj" />
+  <Project Path="QualityControl.xUnit/QualityControl.xUnit.csproj" Id="15ba673a-a5c4-4c17-af80-329f94adbd1f" />
+</Solution>
