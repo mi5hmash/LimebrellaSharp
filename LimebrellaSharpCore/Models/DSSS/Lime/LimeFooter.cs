@@ -8,7 +8,7 @@ public class LimeFooter
     public const int SaltSize = 0x80;
 
     /// <summary>
-    /// A length of a decrypted data in bytes.
+    /// A block of random bytes.
     /// </summary>
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = SaltSize)]
     public byte[] Salt = new byte[SaltSize];
@@ -29,10 +29,10 @@ public class LimeFooter
     public LimeFooter() { }
 
     /// <summary>
-    /// Create a <see cref="LimeFooter"/> with given parameters.
+    /// Initializes a new instance of the LimeFooter class with the specified decrypted data length and signature.
     /// </summary>
-    /// <param name="decryptedDataLength"></param>
-    /// <param name="signature"></param>
+    /// <param name="decryptedDataLength">The length, in bytes, of the decrypted data represented by this footer.</param>
+    /// <param name="signature">The file signature.</param>
     public LimeFooter(long decryptedDataLength, uint signature)
     {
         DecryptedDataLength = decryptedDataLength;

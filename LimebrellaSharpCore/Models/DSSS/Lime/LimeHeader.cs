@@ -6,9 +6,9 @@ namespace LimebrellaSharpCore.Models.DSSS.Lime;
 public class LimeHeader
 {
     /// <summary>
-    /// This should be the ANSI for "DSSS", or 0x5353_5344.
+    /// Gets or sets the magic number used to identify or validate the data format.
     /// </summary>
-    public uint FileFormat { get; set; } = 0x5353_5344;
+    public uint MagicNumber { get; set; } = 0x5353_5344;
 
     /// <summary>
     /// Don't know what's there.
@@ -43,38 +43,38 @@ public class LimeHeader
         EncryptionType = encryptionType;
         Unknown2 = unknown2;
     }
-    
+
     /// <summary>
-    /// Checks if given <paramref name="fileFormat"/> makes sense.
+    /// Determines whether the specified magic number does not match the expected value.
     /// </summary>
-    /// <param name="fileFormat"></param>
-    /// <returns></returns>
-    public BoolResult CheckFileFormat(uint? fileFormat = null)
+    /// <param name="magicNumber">The magic number to check.</param>
+    /// <returns><see langword="true"/> if the magic number does not equal the expected value; otherwise, <see langword="false"/>.</returns>
+    public bool CheckMagicNumber(uint? magicNumber = null)
     {
-        fileFormat ??= FileFormat;
-        return fileFormat != 0x5353_5344 ? new BoolResult(false, "Invalid file header!") : new BoolResult(true);
+        magicNumber ??= MagicNumber;
+        return magicNumber == 0x5353_5344;
     }
 
     /// <summary>
-    /// Checks if given <paramref name="encryptionType"/> makes sense.
+    /// Determines whether the specified encryption type is not equal to Lime encryption type.
     /// </summary>
-    /// <param name="encryptionType"></param>
-    /// <returns></returns>
-    public BoolResult CheckEncryptionType(uint? encryptionType = null)
+    /// <param name="encryptionType">The encryption type to check.</param>
+    /// <returns><see langword="true"/> if the encryption type is not Lime encryption type; otherwise, <see langword="false"/>.</returns>
+    public bool CheckEncryptionType(uint? encryptionType = null)
     {
         encryptionType ??= EncryptionType;
-        return encryptionType != 0x10 ? new BoolResult(false, "Invalid file encryption type!") : new BoolResult(true);
+        return encryptionType == 0x10;
     }
 
     /// <summary>
-    /// Checks the integrity of <see cref="LimeHeader"/>.
+    /// Checks the integrity of the file by validating its magic number and encryption type.
     /// </summary>
-    /// <returns></returns>
-    public BoolResult CheckIntegrity()
+    /// <exception cref="InvalidDataException">Thrown if the file's magic number or encryption type is invalid.</exception>
+    public void CheckIntegrity()
     {
-        var result = CheckFileFormat();
-        if (!result.Result) return result;
+        var result = CheckMagicNumber();
+        if (!result) throw new InvalidDataException("Invalid file magic number.");
         result = CheckEncryptionType();
-        return result;
+        if (!result) throw new InvalidDataException("Invalid file encryption type.");
     }
 }
