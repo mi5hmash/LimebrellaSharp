@@ -9,7 +9,7 @@
 # 🍋☂️ LimebrellaSharp - What is it :interrobang:
 This app can **unpack and pack archives encrypted with the 1st version of "Lime" encryption**. It can also **re-sign these SaveData files** with your own SteamID to **use anyone’s SaveData on your Steam Account**.
 
-## Supported titles*
+## Supported titles
 |Game Title|App ID|Platform|
 |---|---|---|
 |Resident Evil 4 (Remake)|2050650|Steam|
