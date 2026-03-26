@@ -6,7 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<NeutralLanguage>en-US</NeutralLanguage>
-		<AssemblyVersion>3.0.0.0</AssemblyVersion>
+		<AssemblyVersion>3.0.1.0</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<Version>$(AssemblyVersion)</Version>
 		<Authors>Mi5hmasH</Authors>
@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Mi5hmasH.GameLaunchers" Version="0.0.1" />
-		<PackageReference Include="Mi5hmasH.Logger" Version="3.0.0" />
+		<PackageReference Include="Mi5hmasH.Logger" Version="3.0.1" />
 	</ItemGroup>
 
 </Project>

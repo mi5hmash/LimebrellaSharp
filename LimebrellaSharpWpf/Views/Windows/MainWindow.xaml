@@ -15,6 +15,13 @@
         d:DesignWidth="730"
         Width="730"
         ResizeMode="CanMinimize">
+    <!-- Input Bindings -->
+    <Window.InputBindings>
+        <KeyBinding Key="J"
+                    Modifiers="Control+Shift"
+                    Command="{Binding ViewModel.UnlockWindowResizeCommand}"
+                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
+    </Window.InputBindings>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
