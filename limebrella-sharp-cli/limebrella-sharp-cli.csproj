@@ -7,7 +7,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<NeutralLanguage>en-US</NeutralLanguage>
-		<AssemblyVersion>3.0.0.0</AssemblyVersion>
+		<AssemblyVersion>3.0.1.0</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<Version>$(AssemblyVersion)</Version>
 		<Authors>Mi5hmasH</Authors>
