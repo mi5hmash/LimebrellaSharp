@@ -131,6 +131,11 @@ Options:
 # :fire: Issues
 All the problems I've encountered during my tests have been fixed on the go. If you find any other issues (which I hope you won't) feel free to report them [there](https://github.com/mi5hmash/LimebrellaSharp/issues).
 
+> [!TIP]
+> This application creates a log file that may be helpful in troubleshooting.  
+It can be found in the same directory as the executable file.  
+Application stores up to two log files from the most recent sessions.
+
 ## [ISSUE] Game doesn’t detect SaveData file\s on Steam
 If you purchased the game on Steam and it doesn’t detect your re‑signed SaveData files after you’ve placed them in the correct folder, the issue is usually that a valid `remotecache.vdf` file also needs to be generated.
 
@@ -139,8 +144,3 @@ Instructions on how to generate a proper `remotecache.vdf` can be found in [this
 ## [ISSUE] Not all controls are visible in the WPF application on Windows
 You probably have your Windows system font size set higher than the default.
 Set the font size back to the default value, or press **`CTRL + SHIFT + J`** to unlock window resizing in the application.
-
-> [!TIP]
-> This application creates a log file that may be helpful in troubleshooting.  
-It can be found in the same directory as the executable file.  
-Application stores up to two log files from the most recent sessions.
