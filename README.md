@@ -65,9 +65,6 @@ Modified files are being placed in a newly created folder within the ***"Limebre
 > For Steam, the path looks like this:
 > ***"<STEAM_INSTALL_DIRECTORY>/userdata/<USER_ID>/<APP_ID>/remote/win64_save/"***
 
-> [!IMPORTANT]
-> If the SaveData files you re‑signed do not appear in the game menu, please read <a href="https://github.com/mi5hmash/LimebrellaSharp/tree/main/.resources/Save%20Files" target="_blank">this document</a>.
-
 ### ADVANCED OPERATIONS
 
 #### Enabling SuperUser Mode
@@ -110,7 +107,7 @@ Options:
   -s <steam_id>  Steam ID (used in unpack/pack modes)
   -sI <old_id>   Original Steam ID (used in re-sign mode)
   -sO <new_id>   New Steam ID (used in re-sign mode)
-  -v             Verbose output
+  -q             Don't wait for user input to exit after operation completes (auto-close)
   -h             Show this help message
 ```
 
@@ -133,6 +130,15 @@ Options:
 
 # :fire: Issues
 All the problems I've encountered during my tests have been fixed on the go. If you find any other issues (which I hope you won't) feel free to report them [there](https://github.com/mi5hmash/LimebrellaSharp/issues).
+
+## [ISSUE] Game doesn’t detect SaveData file\s on Steam
+If you purchased the game on Steam and it doesn’t detect your re‑signed SaveData files after you’ve placed them in the correct folder, the issue is usually that a valid `remotecache.vdf` file also needs to be generated.
+
+Instructions on how to generate a proper `remotecache.vdf` can be found in [this gist](https://gist.github.com/mi5hmash/47f1be53d213be9b00f2c7e0aa151b11).
+
+## [ISSUE] Not all controls are visible in the WPF application on Windows
+You probably have your Windows system font size set higher than the default.
+Set the font size back to the default value, or press **`CTRL + SHIFT + J`** to unlock window resizing in the application.
 
 > [!TIP]
 > This application creates a log file that may be helpful in troubleshooting.  

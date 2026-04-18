@@ -70,15 +70,15 @@ Console.WriteLine(breakLine);
 
 #region MAIN
 
+// Optional argument: doNotWait
+var doNotWait = arguments.ContainsKey("-q");
+
 // Show HELP if no arguments are provided or if -h is provided
 if (arguments.Count == 0 || arguments.ContainsKey("-h"))
 {
     PrintHelp();
-    return;
+    goto EXIT;
 }
-
-// Optional argument: isVerbose
-var isVerbose = arguments.ContainsKey("-v");
 
 // Get MODE
 arguments.TryGetValue("-m", out var mode);
@@ -98,14 +98,10 @@ switch (mode)
 }
 
 // EXIT the application
+EXIT:
 Console.WriteLine(breakLine); // print a break line
 ConsoleHelper.SayGoodbye(breakLine);
-#if DEBUG
-ConsoleHelper.PressAnyKeyToExit();
-#else
-if (isVerbose) ConsoleHelper.PressAnyKeyToExit();
-#endif
-
+if (!doNotWait) ConsoleHelper.PressAnyKeyToExit();
 return;
 
 #endregion
@@ -131,7 +127,7 @@ static void PrintHelp()
                          -s <steam_id>  Steam ID (used in unpack/pack modes)
                          -sI <old_id>   Original Steam ID (used in re-sign mode)
                          -sO <new_id>   New Steam ID (used in re-sign mode)
-                         -v             Verbose output
+                         -q             Don't wait for user input to exit after operation completes (auto-close)
                          -h             Show this help message
 
                        Examples:
