@@ -1,14 +1,22 @@
-﻿using LimebrellaSharpCore.Helpers;
-using LimebrellaSharpCore.Infrastructure;
+﻿using LimebrellaSharpCore.Infrastructure;
 using LimebrellaSharpCore.Models.DSSS.Lime;
 using Mi5hmasH.GameLaunchers.Steam.Types;
 using Mi5hmasH.Logger;
+using Mi5hmasH.Progress;
 using static LimebrellaSharpCore.Helpers.LimeDeencryptor;
 
 namespace LimebrellaSharpCore;
 
 public class Core(SimpleLogger logger, ProgressReporter progressReporter)
 {
+    /// <summary>
+    /// Marks the progress reporting as complete by reporting 100% progress.
+    /// </summary>
+    /// <param name="progressTracker">The progress tracker used to report progress.</param>
+    /// <param name="errorCounter">The error counter used to report errors.</param>
+    private void LogAllTasksCompleted(ProgressTracker progressTracker, ErrorCounter errorCounter)
+        => logger.LogInfo($"{progressTracker} All tasks completed. {errorCounter}");
+
     /// <summary>
     /// Asynchronously unpacks and decrypts all encrypted Lime files from the specified input directory for the given user, saving the decrypted files to a new output directory.
     /// </summary>
@@ -19,49 +27,56 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
     public async Task UnpackFilesAsync(string inputDir, ulong userId, CancellationTokenSource cts)
     {
         // GET FILES TO PROCESS
-        var filesToProcess = Directory.GetFiles(inputDir, $"*{LimeFile.FileExtension}", SearchOption.TopDirectoryOnly);
-        if (filesToProcess.Length == 0) return;
+        string[] filesToProcess;
+        try { filesToProcess = SaveDataFileIo.GetFiles(inputDir); }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex.Message);
+            return;
+        }
+        // INITIALIZE PROGRESS TRACKER
+        var progressTracker = new ProgressTracker(filesToProcess.Length);
+        var errorCounter = new ErrorCounter(logger);
+        // UNPACK
+        logger.LogInfo($"Unpacking [{progressTracker.Total}] files...");
         // Get Steam Account ID from user ID
         var steamId = new SteamId(userId).AccountId;
-        // UNPACK
-        logger.LogInfo($"Unpacking [{filesToProcess.Length}] files...");
         // Create a new folder in OUTPUT directory
         var outputDir = Directories.GetNewOutputDirectory("unpacked").AddUserIdAndSuffix(steamId.ToString());
         Directory.CreateDirectory(outputDir);
         // Setup parallel options
         var po = GetParallelOptions(cts.Token);
         // Process files
-        var progress = 0;
         try
         {
             foreach (var file in filesToProcess)
             {
                 // Update progress
-                progress++;
+                progressTracker.Increment();
                 // Try to read file data
                 var fileName = Path.GetFileName(file);
-                logger.LogInfo($"[{progress}/{filesToProcess.Length}] Trying to unpack the [{fileName}] file...");
+                logger.LogInfo($"{progressTracker} Trying to unpack the [{fileName}] file...");
                 byte[] data;
                 try { data = await File.ReadAllBytesAsync(file); }
                 catch (Exception ex)
                 {
-                    logger.LogError($"[{progress}/{filesToProcess.Length}] Failed to read the [{fileName}] file: {ex}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to read the [{fileName}] file: {ex}");
+                    continue;
                 }
                 // Process file data
                 var limeFile = new LimeFile();
                 await limeFile.SetFileDataAsync(data, true);
                 if (!limeFile.IsEncrypted)
                 {
-                    logger.LogWarning($"[{progress}/{filesToProcess.Length}] The [{fileName}] file is not encrypted, skipping...");
-                    continue; // Skip to the next file
+                    errorCounter.AddWarning($"{progressTracker} The [{fileName}] file is not encrypted, skipping...");
+                    continue;
                 }
                 // Try to decrypt file data
                 try { await limeFile.DecryptSegmentsAsync(steamId, po); }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Failed to decrypt the file: {ex.Message}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to decrypt the file: {ex.Message}");
+                    continue;
                 }
                 // Check for cancellation
                 cts.Token.ThrowIfCancellationRequested();
@@ -74,22 +89,21 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Failed to save the file: {ex}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker}  Failed to save the file: {ex}");
+                    continue;
                 }
-                logger.LogInfo($"[{progress}/{filesToProcess.Length}] Decrypted the [{fileName}] file.");
-                progressReporter.Report((int)((double)progress / filesToProcess.Length * 100));
+                logger.LogInfo($"{progressTracker} Decrypted the [{fileName}] file.");
+                progressReporter.Report(progressTracker.Percentage);
             }
-            logger.LogInfo($"[{progress}/{filesToProcess.Length}] All tasks completed.");
+            LogAllTasksCompleted(progressTracker, errorCounter);
         }
         catch (OperationCanceledException ex)
         {
-            logger.LogWarning(ex.Message);
+            errorCounter.AddWarning(ex.Message);
         }
         finally
         {
-            // Ensure progress is set to 100% at the end
-            progressReporter.Report(100);
+            progressReporter.Complete();
         }
     }
 
@@ -103,49 +117,56 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
     public async Task PackFilesAsync(string inputDir, ulong userId, CancellationTokenSource cts)
     {
         // GET FILES TO PROCESS
-        var filesToProcess = Directory.GetFiles(inputDir, $"*{LimeFile.FileExtension}", SearchOption.TopDirectoryOnly);
-        if (filesToProcess.Length == 0) return;
+        string[] filesToProcess;
+        try { filesToProcess = SaveDataFileIo.GetFiles(inputDir); }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex.Message);
+            return;
+        }
+        // INITIALIZE PROGRESS TRACKER
+        var progressTracker = new ProgressTracker(filesToProcess.Length);
+        var errorCounter = new ErrorCounter(logger);
+        // PACK
+        logger.LogInfo($"Packing [{progressTracker.Total}] files...");
         // Get Steam Account ID from user ID
         var steamId = new SteamId(userId).AccountId;
-        // PACK
-        logger.LogInfo($"Packing [{filesToProcess.Length}] files...");
         // Create a new folder in OUTPUT directory
         var outputDir = Directories.GetNewOutputDirectory("packed").AddUserIdAndSuffix(steamId.ToString());
         Directory.CreateDirectory(outputDir);
         // Setup parallel options
         var po = GetParallelOptions(cts.Token);
         // Process files
-        var progress = 0;
         try
         {
             foreach (var file in filesToProcess)
             {
                 // Update progress
-                progress++;
+                progressTracker.Increment();
                 // Try to read file data
                 var fileName = Path.GetFileName(file);
-                logger.LogInfo($"[{progress}/{filesToProcess.Length}] Trying to pack the [{fileName}] file...");
+                logger.LogInfo($"{progressTracker} Trying to pack the [{fileName}] file...");
                 byte[] data;
                 try { data = await File.ReadAllBytesAsync(file); }
                 catch (Exception ex)
                 {
-                    logger.LogError($"[{progress}/{filesToProcess.Length}] Failed to read the [{fileName}] file: {ex}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to read the [{fileName}] file: {ex}");
+                    continue;
                 }
                 // Process file data
                 var limeFile = new LimeFile();
                 await limeFile.SetFileDataAsync(data);
                 if (limeFile.IsEncrypted)
                 {
-                    logger.LogWarning($"[{progress}/{filesToProcess.Length}] The [{fileName}] file is already encrypted, skipping...");
-                    continue; // Skip to the next file
+                    errorCounter.AddWarning($"{progressTracker} The [{fileName}] file is already encrypted, skipping...");
+                    continue;
                 }
                 // Try to encrypt file data
                 try { await limeFile.EncryptSegmentsAsync(steamId, po); }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Failed to encrypt the file: {ex.Message}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to encrypt the file: {ex.Message}");
+                    continue;
                 }
                 // Check for cancellation
                 cts.Token.ThrowIfCancellationRequested();
@@ -158,22 +179,21 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Failed to save the file: {ex}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to save the file: {ex}");
+                    continue;
                 }
-                logger.LogInfo($"[{progress}/{filesToProcess.Length}] Encrypted the [{fileName}] file.");
-                progressReporter.Report((int)((double)progress / filesToProcess.Length * 100));
+                logger.LogInfo($"{progressTracker} Encrypted the [{fileName}] file.");
+                progressReporter.Report(progressTracker.Percentage);
             }
-            logger.LogInfo($"[{progress}/{filesToProcess.Length}] All tasks completed.");
+            LogAllTasksCompleted(progressTracker, errorCounter);
         }
         catch (OperationCanceledException ex)
         {
-            logger.LogWarning(ex.Message);
+            errorCounter.AddWarning(ex.Message);
         }
         finally
         {
-            // Ensure progress is set to 100% at the end
-            progressReporter.Report(100);
+            progressReporter.Complete();
         }
     }
     
@@ -188,36 +208,43 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
     public async Task ResignFilesAsync(string inputDir, ulong userIdInput, ulong userIdOutput, CancellationTokenSource cts)
     {
         // GET FILES TO PROCESS
-        var filesToProcess = Directory.GetFiles(inputDir, $"*{LimeFile.FileExtension}", SearchOption.TopDirectoryOnly);
-        if (filesToProcess.Length == 0) return;
+        string[] filesToProcess;
+        try { filesToProcess = SaveDataFileIo.GetFiles(inputDir); }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex.Message);
+            return;
+        }
+        // INITIALIZE PROGRESS TRACKER
+        var progressTracker = new ProgressTracker(filesToProcess.Length);
+        var errorCounter = new ErrorCounter(logger);
+        // RE-SIGN
+        logger.LogInfo($"Resigning [{progressTracker.Total}] files...");
         // Get Steam Account ID from user ID
         var steamIdInput = new SteamId(userIdInput).AccountId;
         var steamIdOutput = new SteamId(userIdOutput).AccountId;
-        // RE-SIGN
-        logger.LogInfo($"Resigning [{filesToProcess.Length}] files...");
         // Create a new folder in OUTPUT directory
         var outputDir = Directories.GetNewOutputDirectory("resigned").AddUserIdAndSuffix(steamIdOutput.ToString());
         Directory.CreateDirectory(outputDir);
         // Setup parallel options
         var po = GetParallelOptions(cts.Token);
         // Process files
-        var progress = 0;
         try
         {
             foreach (var file in filesToProcess)
             {
                 // Update progress
-                progress++;
+                progressTracker.Increment();
                 // DECRYPT
                 // Try to read file data
                 var fileName = Path.GetFileName(file);
-                logger.LogInfo($"[{progress}/{filesToProcess.Length}] Trying to unpack the [{fileName}] file...");
+                logger.LogInfo($"{progressTracker} Trying to unpack the [{fileName}] file...");
                 byte[] data;
                 try { data = await File.ReadAllBytesAsync(file); }
                 catch (Exception ex)
                 {
-                    logger.LogError($"[{progress}/{filesToProcess.Length}] Failed to read the [{fileName}] file: {ex}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to read the [{fileName}] file: {ex}");
+                    continue;
                 }
                 // Process file data
                 var limeFile = new LimeFile();
@@ -228,8 +255,8 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
                     try { await limeFile.DecryptSegmentsAsync(steamIdInput, po); }
                     catch (Exception ex)
                     {
-                        logger.LogError($"Failed to decrypt the file: {ex.Message}");
-                        continue; // Skip to the next file
+                        errorCounter.AddError($"{progressTracker} Failed to decrypt the file: {ex.Message}");
+                        continue;
                     }
                     // Check for cancellation
                     cts.Token.ThrowIfCancellationRequested();
@@ -239,8 +266,8 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
                 try { await limeFile.EncryptSegmentsAsync(steamIdOutput, po); }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Failed to encrypt the file: {ex.Message}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to encrypt the file: {ex.Message}");
+                    continue;
                 }
                 // Check for cancellation
                 cts.Token.ThrowIfCancellationRequested();
@@ -253,22 +280,21 @@ public class Core(SimpleLogger logger, ProgressReporter progressReporter)
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Failed to save the file: {ex}");
-                    continue; // Skip to the next file
+                    errorCounter.AddError($"{progressTracker} Failed to save the file: {ex}");
+                    continue;
                 }
-                logger.LogInfo($"[{progress}/{filesToProcess.Length}] Re-signed the [{fileName}] file.");
-                progressReporter.Report((int)((double)progress / filesToProcess.Length * 100));
+                logger.LogInfo($"{progressTracker} Re-signed the [{fileName}] file.");
+                progressReporter.Report(progressTracker.Percentage);
             }
-            logger.LogInfo($"[{progress}/{filesToProcess.Length}] All tasks completed.");
+            LogAllTasksCompleted(progressTracker, errorCounter);
         }
         catch (OperationCanceledException ex)
         {
-            logger.LogWarning(ex.Message);
+            errorCounter.AddWarning(ex.Message);
         }
         finally
         {
-            // Ensure progress is set to 100% at the end
-            progressReporter.Report(100);
+            progressReporter.Complete();
         }
     }
 }

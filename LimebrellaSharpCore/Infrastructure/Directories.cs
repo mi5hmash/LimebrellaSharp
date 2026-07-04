@@ -25,14 +25,24 @@ public static partial class Directories
     public static string GetNewOutputDirectory(string action) 
         => Path.Combine(Output, $"{DateTime.Now:yyyy-MM-dd_HHmmssfff}_{action}");
 
-    /// <summary>
-    /// Appends the user identifier and a predefined suffix to the specified output directory path.
-    /// </summary>
-    /// <param name="outputDirectory">The base directory path to which the user identifier and suffix will be appended.</param>
-    /// <param name="userId">The user identifier to include in the resulting path.</param>
-    /// <returns>A string representing the full path of the new output directory, including the user ID, and the predefined suffix.</returns>
-    public static string AddUserIdAndSuffix(this string outputDirectory, string userId)
-        => Path.Combine(outputDirectory, userId, SaveDataDirectorySuffix);
+    /// <param name="path">A path to process.</param>
+    extension(string path)
+    {
+        /// <summary>
+        /// Appends the user identifier and a predefined suffix to the specified output directory path.
+        /// </summary>
+        /// <param name="userId">The user identifier to include in the resulting path.</param>
+        /// <returns>A string representing the full path of the new output directory, including the user ID, and the predefined suffix.</returns>
+        public string AddUserIdAndSuffix(string userId)
+            => Path.Combine(path, userId, SaveDataDirectorySuffix);
+
+        /// <summary>
+        /// Removes trailing directory separator characters from a path.
+        /// </summary>
+        /// <returns>The path without trailing directory separators.</returns>
+        public string TrimDirectorySeparator()
+            => path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
 
     /// <summary>
     /// Opens the specified directory in the system's default file explorer, if the directory exists.

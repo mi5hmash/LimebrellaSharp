@@ -1,17 +1,18 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LimebrellaSharpCore;
-using LimebrellaSharpCore.Helpers;
 using LimebrellaSharpCore.Infrastructure;
 using LimebrellaSharpWpf.Fonts;
 using LimebrellaSharpWpf.Helpers;
 using LimebrellaSharpWpf.Settings;
 using Mi5hmasH.AppInfo;
 using Mi5hmasH.AppSettings;
-using Mi5hmasH.AppSettings.Flavors;
+using Mi5hmasH.AppSettings.FlavorsFactory.Flavors;
 using Mi5hmasH.Logger;
+using Mi5hmasH.Logger.Enums;
+using Mi5hmasH.Logger.LogProvidersFactory.LogProviders;
 using Mi5hmasH.Logger.Models;
-using Mi5hmasH.Logger.Providers;
+using Mi5hmasH.Progress;
 using Microsoft.Win32;
 using System.Collections.Specialized;
 using System.ComponentModel.DataAnnotations;
@@ -45,13 +46,17 @@ public partial class MainWindowViewModel : ObservableValidator
     #endregion
 
     #region UI_STATE
-    [ObservableProperty] private bool _isBusy;
-    [ObservableProperty] private bool _isAbortAllowed;
+    [ObservableProperty] 
+    public partial bool IsBusy { get; set; }
+    [ObservableProperty] 
+    public partial bool IsAbortAllowed { get; set; }
     #endregion
 
     #region PROGRESS_REPORTER
-    [ObservableProperty] private int _progressValue;
-    [ObservableProperty] private string _progressText = "Loading...";
+    [ObservableProperty] 
+    public partial int ProgressValue { get; set; }
+    [ObservableProperty] 
+    public partial string ProgressText { get; set; } = "Loading...";
     private readonly ProgressReporter _progressReporter;
     #endregion
 
@@ -70,7 +75,7 @@ public partial class MainWindowViewModel : ObservableValidator
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             if (e.ExceptionObject is not Exception exception) return;
-            var logEntry = new LogEntry(SimpleLogger.LogSeverity.Critical, $"Unhandled Exception: {exception}");
+            var logEntry = new LogEntry(LogSeverityEnum.Critical, $"Unhandled Exception: {exception}");
             fileLogProvider.Log(logEntry);
             fileLogProvider.Flush();
         };
@@ -84,13 +89,13 @@ public partial class MainWindowViewModel : ObservableValidator
     [NotifyDataErrorInfo]
     [Range(0, ulong.MaxValue)]
     [Required]
-    private string _steamIdInput = "0";
+    public partial string SteamIdInput { get; set; } = "0";
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(0, ulong.MaxValue)]
     [Required]
-    private string _steamIdOutput = "0";
+    public partial string SteamIdOutput { get; set; } = "0";
 
     [RelayCommand]
     private void SwapSteamIds()
@@ -110,24 +115,26 @@ public partial class MainWindowViewModel : ObservableValidator
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Required]
-    private string _inputFolderPath = MyAppInfo.RootPath;
+    public partial string InputFolderPath { get; set; } = MyAppInfo.RootPath.TrimDirectorySeparator();
     
     partial void OnInputFolderPathChanged(string value)
     {
         if (Directory.Exists(value))
         {
+            value = value.TrimDirectorySeparator();
+            InputFolderPath = value;
             ExtractSteamIdFromFilePath();
             return;
         }
         if (File.Exists(value))
         {
-            _inputFolderPath = Path.GetDirectoryName(value) ?? string.Empty;
+            InputFolderPath = Path.GetDirectoryName(value) ?? string.Empty;
             _progressReporter.Report("Input Folder Path is valid.");
             ExtractSteamIdFromFilePath();
             return;
         }
         _progressReporter.Report("Invalid Input Folder Path!");
-        _inputFolderPath = string.Empty;
+        InputFolderPath = string.Empty;
     }
 
     [RelayCommand]
@@ -198,7 +205,8 @@ public partial class MainWindowViewModel : ObservableValidator
 
     private CancellationTokenSource _cts = new();
     private readonly Core _core;
-    [ObservableProperty] private SuperUserManager _superUserManager;
+    [ObservableProperty] 
+    public partial SuperUserManager SuperUserManager { get; set; }
 
     public MainWindowViewModel()
     {

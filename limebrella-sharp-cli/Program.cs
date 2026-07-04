@@ -1,10 +1,12 @@
 ﻿using LimebrellaSharpCore;
-using LimebrellaSharpCore.Helpers;
+using LimebrellaSharpCore.Infrastructure;
 using Mi5hmasH.AppInfo;
 using Mi5hmasH.ConsoleHelper;
 using Mi5hmasH.Logger;
+using Mi5hmasH.Logger.Enums;
+using Mi5hmasH.Logger.LogProvidersFactory.LogProviders;
 using Mi5hmasH.Logger.Models;
-using Mi5hmasH.Logger.Providers;
+using Mi5hmasH.Progress;
 
 #region SETUP
 
@@ -30,7 +32,7 @@ logger.AddProvider(fileLogProvider);
 AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 {
     if (e.ExceptionObject is not Exception exception) return;
-    var logEntry = new LogEntry(SimpleLogger.LogSeverity.Critical, $"Unhandled Exception: {exception}");
+    var logEntry = new LogEntry(LogSeverityEnum.Critical, $"Unhandled Exception: {exception}");
     fileLogProvider.Log(logEntry);
     fileLogProvider.Flush();
 };
@@ -144,7 +146,7 @@ string GetValidatedInputRootPath()
     if (File.Exists(inputRootPath)) inputRootPath = Path.GetDirectoryName(inputRootPath);
     return !Directory.Exists(inputRootPath)
         ? throw new DirectoryNotFoundException($"The provided path '{inputRootPath}' is not a valid directory or does not exist.")
-        : inputRootPath;
+        : inputRootPath.TrimDirectorySeparator();
 }
 
 #endregion
@@ -153,29 +155,27 @@ string GetValidatedInputRootPath()
 
 async Task UnpackAll()
 {
-    var cts = new CancellationTokenSource();
+    using var cts = new CancellationTokenSource();
     arguments.TryGetValue("-s", out var steamId);
     if (string.IsNullOrEmpty(steamId))
         throw new ArgumentException("Input Steam ID is missing.");
     var inputRootPath = GetValidatedInputRootPath();
     await core.UnpackFilesAsync(inputRootPath, Convert.ToUInt64(steamId), cts);
-    cts.Dispose();
 }
 
 async Task PackAll()
 {
-    var cts = new CancellationTokenSource();
+    using var cts = new CancellationTokenSource();
     arguments.TryGetValue("-s", out var steamId);
     if (string.IsNullOrEmpty(steamId))
         throw new ArgumentException("Output Steam ID is missing.");
     var inputRootPath = GetValidatedInputRootPath();
     await core.PackFilesAsync(inputRootPath, Convert.ToUInt64(steamId), cts);
-    cts.Dispose();
 }
 
 async Task ResignAll()
 {
-    var cts = new CancellationTokenSource();
+    using var cts = new CancellationTokenSource();
     arguments.TryGetValue("-sI", out var steamIdInput);
     if (string.IsNullOrEmpty(steamIdInput))
         throw new ArgumentException("Input Steam ID is missing.");
@@ -184,7 +184,6 @@ async Task ResignAll()
         throw new ArgumentException("Output Steam ID is missing.");
     var inputRootPath = GetValidatedInputRootPath();
     await core.ResignFilesAsync(inputRootPath, Convert.ToUInt64(steamIdInput), Convert.ToUInt64(steamIdOutput), cts);
-    cts.Dispose();
 }
 
 #endregion

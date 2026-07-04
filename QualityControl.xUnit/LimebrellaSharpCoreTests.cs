@@ -1,8 +1,8 @@
 using LimebrellaSharpCore;
-using LimebrellaSharpCore.Helpers;
 using LimebrellaSharpCore.Models.DSSS.Lime;
 using Mi5hmasH.GameLaunchers.Steam.Types;
 using Mi5hmasH.Logger;
+using Mi5hmasH.Progress;
 
 namespace QualityControl.xUnit;
 

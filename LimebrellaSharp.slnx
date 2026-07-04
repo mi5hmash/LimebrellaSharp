@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Elements/">
+    <File Path="README.md" />
+    <File Path="LICENSE" />
+  </Folder>
   <Project Path="limebrella-sharp-cli/limebrella-sharp-cli.csproj" />
   <Project Path="LimebrellaSharpCore/LimebrellaSharpCore.csproj" />
   <Project Path="LimebrellaSharpWpf/LimebrellaSharpWpf.csproj" />
